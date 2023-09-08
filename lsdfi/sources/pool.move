@@ -1,6 +1,7 @@
 module wisp_lsdfi::pool {
     use sui::coin::{Self, Coin, TreasuryCap};
     use sui::balance::{Self, Balance};
+    use sui::event;
     use sui::object::{Self, UID};
     use sui::bag::{Self, Bag};
     use sui::tx_context::{Self, TxContext};
@@ -28,6 +29,20 @@ module wisp_lsdfi::pool {
         fee_to: address
     }
 
+    // Events
+    struct LSTStatusUpdated has copy, drop {
+        lst_name: TypeName,
+        status: bool,
+    }
+
+    struct BalanceChanged has copy, drop {
+        sender: address,
+        in_token: TypeName,
+        in_amount: u64,
+        out_token: TypeName,
+        out_amount: u64,
+    }
+
     fun init (ctx: &mut TxContext){
         let sender = tx_context::sender(ctx);
 
@@ -47,7 +62,7 @@ module wisp_lsdfi::pool {
         transfer::share_object(pool_registry);
     }
 
-    public fun initialize (
+    public entry fun initialize (
         _: &AdminCap,
         registry: &mut PoolRegistry,
         wispSUI_treasury: TreasuryCap<WISPSUI>
@@ -67,7 +82,12 @@ module wisp_lsdfi::pool {
         } else {
             assert!(!vec_set::contains(&registry.supported_lsds, &name), lsdfi_errors::StatusAlreadySet());
             vec_set::insert(&mut registry.supported_lsds, name);
-        }
+        };
+
+        event::emit (LSTStatusUpdated {
+            lst_name: name,
+            status: status
+        });
     }
 
     public (friend) fun mint_wispSUI<T> (
@@ -78,7 +98,8 @@ module wisp_lsdfi::pool {
     ): Coin<WISPSUI> {
         let lsd_name = type_name::get<T>();
         assert!(vec_set::contains(&registry.supported_lsds, &lsd_name), lsdfi_errors::LSDNotSupport());
-        let wispSUI_amount = get_wispSUI_mint_amount(coin::value(&lsd));
+        let lsd_amount = coin::value(&lsd);
+        let wispSUI_amount = get_wispSUI_mint_amount(lsd_amount);
 
         if(!bag::contains(&registry.balances, lsd_name)) {
             bag::add(&mut registry.balances, lsd_name, balance::zero<T>());
@@ -91,6 +112,14 @@ module wisp_lsdfi::pool {
 
         let wispSUI = coin::mint<WISPSUI>(option::borrow_mut(&mut registry.wispSUI_treasury), wispSUI_amount, ctx);
 
+        event::emit(BalanceChanged {
+            sender: tx_context::sender(ctx),
+            in_token: lsd_name,
+            in_amount: lsd_amount,
+            out_token: type_name::get<WISPSUI>(),
+            out_amount: wispSUI_amount
+        });
+
         wispSUI
     }
 
@@ -102,12 +131,21 @@ module wisp_lsdfi::pool {
     ): Coin<T> {
         let lsd_name = type_name::get<T>();
         assert!(vec_set::contains(&registry.supported_lsds, &lsd_name), lsdfi_errors::LSDNotSupport());
-        let lsd_amount = get_wispSUI_burn_amount(coin::value(&wispSUI));
+        let wispSUI_amount = coin::value(&wispSUI);
+        let lsd_amount = get_wispSUI_burn_amount(wispSUI_amount);
         
         assert!(balance::value(bag::borrow<TypeName, Balance<T>>(&registry.balances, lsd_name)) >= lsd_amount, lsdfi_errors::NotEnoughBalance());
         let lsd_balance = balance::split(bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, lsd_name), lsd_amount);
 
         coin::burn(option::borrow_mut(&mut registry.wispSUI_treasury), wispSUI);
+
+        event::emit(BalanceChanged {
+            sender: tx_context::sender(ctx),
+            in_token: type_name::get<WISPSUI>(),
+            in_amount: wispSUI_amount,
+            out_token: lsd_name,
+            out_amount: lsd_amount
+        });
 
         coin::from_balance(lsd_balance, ctx)
     }
@@ -123,7 +161,8 @@ module wisp_lsdfi::pool {
         assert!(vec_set::contains(&registry.supported_lsds, &in_name), lsdfi_errors::LSDNotSupport());
         assert!(vec_set::contains(&registry.supported_lsds, &out_name), lsdfi_errors::LSDNotSupport());
 
-        let out_amount = get_swap_amount(coin::value(&in_coin));
+        let in_amount = coin::value(&in_coin);
+        let out_amount = get_swap_amount(in_amount);
 
         assert!(balance::value(bag::borrow<TypeName, Balance<O>>(&registry.balances, out_name)) >= out_amount, lsdfi_errors::NotEnoughBalance());
         let out_balance = balance::split(bag::borrow_mut<TypeName, Balance<O>>(&mut registry.balances, out_name), out_amount);
@@ -136,6 +175,14 @@ module wisp_lsdfi::pool {
             bag::borrow_mut<TypeName, Balance<I>>(&mut registry.balances, in_name),
             coin::into_balance(in_coin)
         );
+
+        event::emit(BalanceChanged {
+            sender: tx_context::sender(ctx),
+            in_token: in_name,
+            in_amount,
+            out_token: out_name,
+            out_amount
+        });
 
         coin::from_balance(out_balance, ctx)
     }
