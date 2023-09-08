@@ -1,11 +1,12 @@
 module aggregator::aggregator {
     use std::type_name::{Self, TypeName};
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::object_table::{Self, ObjectTable};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::vec_set::{Self, VecSet};
     use sui::clock::{Self, Clock};
+    use sui::event;
 
     use aggregator::access_control::{Self, AdminCap, OperatorCap};
     use aggregator::errors;
@@ -37,6 +38,19 @@ module aggregator::aggregator {
         history_write_idx: u64,
     }
 
+    // Events
+    struct LSTStatusUpdated has copy, drop {
+        aggregator_id: ID,
+        lst_name: TypeName,
+        status: bool,
+    }
+
+    struct ResultUpdated has copy, drop {
+        aggregator_id: ID,
+        lst_name: TypeName,
+        result: Result,
+    }
+
     fun init(ctx: &mut TxContext) {
         let registry = AggregatorRegistry {
             id: object::new(ctx),
@@ -59,17 +73,22 @@ module aggregator::aggregator {
         ctx: &mut TxContext
     ) {
         let name = type_name::get<T>();
+        let id: ID;
+
         if (!status) {
             assert!(vec_set::contains(&registry.lst_names, &name), errors::StatusAlreadySet());
             vec_set::remove(&mut registry.lst_names, &name);
             let aggregator = object_table::remove(&mut registry.aggregators, name);
-            let LSDAggregator {id, last_result: _, lst_name:_} = aggregator;
-            object::delete(id);
+            let LSDAggregator {id: uid, last_result: _, lst_name:_} = aggregator;
+            id = object::uid_to_inner(&uid);
+            object::delete(uid);
         } else {
             assert!(!vec_set::contains(&registry.lst_names, &name), errors::StatusAlreadySet());
             vec_set::insert(&mut registry.lst_names, name);
+            let uid = object::new(ctx);
+            id = object::uid_to_inner(&uid);
             let aggregator = LSDAggregator {
-                id: object::new(ctx),
+                id: uid,
                 lst_name: name,
                 last_result: Result {
                     value: 0,
@@ -77,7 +96,13 @@ module aggregator::aggregator {
                 }
             };
             object_table::add(&mut registry.aggregators, name, aggregator);
-        }
+        };
+
+        event::emit(LSTStatusUpdated {
+            aggregator_id: id,
+            lst_name: name,
+            status: status
+        });
     }
 
     public entry fun set_result<T>(
@@ -103,6 +128,12 @@ module aggregator::aggregator {
             value: value,
             timestamp: clock::timestamp_ms(clock)
         };
+
+        event::emit(ResultUpdated {
+            aggregator_id: object::uid_to_inner(&aggregator.id),
+            lst_name: name,
+            result: aggregator.last_result
+        });
     }
 
     public fun get_list_name(registry: &AggregatorRegistry): &VecSet<TypeName> {

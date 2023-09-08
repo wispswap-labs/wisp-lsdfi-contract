@@ -1,6 +1,7 @@
 module aggregator::access_control {
-    use sui::object::{Self, UID};
+    use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
+    use sui::event;
     
     friend aggregator::aggregator;
 
@@ -12,10 +13,21 @@ module aggregator::access_control {
         id: UID,
     }
 
+    // Events 
+    struct AdminCapCreated has copy, drop {
+        admin_cap: ID
+    }
+
+    struct OperatorCapCreated has copy, drop {
+        operator_cap: ID
+    }
+
     public (friend) fun create_admin_cap (ctx: &mut TxContext): AdminCap {
         let cap = AdminCap {
             id: object::new(ctx),
         };
+
+        event::emit(AdminCapCreated{admin_cap: object::uid_to_inner(&cap.id)});
 
         cap
     }
@@ -27,6 +39,8 @@ module aggregator::access_control {
         let cap = OperatorCap {
             id: object::new(ctx),
         };
+
+        event::emit(OperatorCapCreated{operator_cap: object::uid_to_inner(&cap.id)});
 
         cap
     }
