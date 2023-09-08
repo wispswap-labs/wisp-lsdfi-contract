@@ -12,31 +12,31 @@ module wisp_lsdfi::lsdfi {
     public entry fun mint_wispSUI<T>(
         pool_registry: &mut PoolRegistry,
         _aggregator_registry: &AggregatorRegistry,
-        lsd: Coin<T>,
+        lst: Coin<T>,
         ctx: &mut TxContext
     ) {
-        let wispSUI = pool::mint_wispSUI(pool_registry, _aggregator_registry, lsd, ctx);
+        let wispSUI = pool::mint_wispSUI(pool_registry, _aggregator_registry, lst, ctx);
         transfer::public_transfer(wispSUI, tx_context::sender(ctx));
     }
 
     public fun mint_wispSUI_non_entry<T>(
         pool_registry: &mut PoolRegistry,
         _aggregator_registry: &AggregatorRegistry,
-        lsd: Coin<T>,
+        lst: Coin<T>,
         ctx: &mut TxContext
     ): Coin<WISPSUI> {
-        pool::mint_wispSUI(pool_registry, _aggregator_registry, lsd, ctx)
+        pool::mint_wispSUI(pool_registry, _aggregator_registry, lst, ctx)
     }
 
     public entry fun mint_wispSUI_mul_coin<T>(
         pool_registry: &mut PoolRegistry,
         _aggregator_registry: &AggregatorRegistry,
-        lsds: vector<Coin<T>>,
+        lsts: vector<Coin<T>>,
         amount: u64,
         ctx: &mut TxContext
     ) {
-        let lsd = utils::extract_coin(lsds, amount, ctx);
-        mint_wispSUI<T>(pool_registry, _aggregator_registry, lsd, ctx);
+        let lst = utils::extract_coin(lsts, amount, ctx);
+        mint_wispSUI<T>(pool_registry, _aggregator_registry, lst, ctx);
     }
 
     public entry fun burn_wispSUI<T>(
@@ -45,8 +45,8 @@ module wisp_lsdfi::lsdfi {
         wispSUI: Coin<WISPSUI>,
         ctx: &mut TxContext
     ) {
-        let lsd = pool::burn_wispSUI<T>(pool_registry, _aggregator_registry, wispSUI, ctx);
-        transfer::public_transfer(lsd, tx_context::sender(ctx));
+        let lst = pool::burn_wispSUI<T>(pool_registry, _aggregator_registry, wispSUI, ctx);
+        transfer::public_transfer(lst, tx_context::sender(ctx));
     }
 
     public fun burn_wispSUI_non_entry<T>(

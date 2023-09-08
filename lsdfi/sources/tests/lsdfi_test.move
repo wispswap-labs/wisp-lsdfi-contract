@@ -62,8 +62,8 @@ module wisp_lsdfi::lsdfi_test {
             let wispSUI_treasury_cap = test::take_from_sender<TreasuryCap<WISPSUI>>(test);
 
             pool::initialize(&admin_cap, &mut registry, wispSUI_treasury_cap);
-            pool::set_supported_lsd<LST_1>(&admin_cap, &mut registry, true);
-            pool::set_supported_lsd<LST_2>(&admin_cap, &mut registry, true);
+            pool::set_supported_lst<LST_1>(&admin_cap, &mut registry, true);
+            pool::set_supported_lst<LST_2>(&admin_cap, &mut registry, true);
 
             test::return_shared(registry);
             test::return_to_sender(test, admin_cap);

@@ -24,7 +24,7 @@ module wisp_lsdfi::pool {
     struct PoolRegistry has key, store {
         id: UID,
         balances: Bag,
-        supported_lsds: VecSet<TypeName>,
+        supported_lsts: VecSet<TypeName>,
         wispSUI_treasury: Option<TreasuryCap<WISPSUI>>,
         fee_to: address
     }
@@ -53,7 +53,7 @@ module wisp_lsdfi::pool {
         let pool_registry = PoolRegistry {
             id: object::new(ctx),
             balances: bag::new(ctx),
-            supported_lsds: vec_set::empty(),
+            supported_lsts: vec_set::empty(),
             wispSUI_treasury: option::none(),
             fee_to: sender
         };
@@ -70,18 +70,18 @@ module wisp_lsdfi::pool {
         option::fill(&mut registry.wispSUI_treasury, wispSUI_treasury);
     }
 
-    public entry fun set_supported_lsd<T> (
+    public entry fun set_supported_lst<T> (
         _: &AdminCap,
         registry: &mut PoolRegistry,
         status: bool,
     ) {
         let name = type_name::get<T>();
         if (!status) {
-            assert!(vec_set::contains(&registry.supported_lsds, &name), lsdfi_errors::StatusAlreadySet());
-            vec_set::remove(&mut registry.supported_lsds, &name);
+            assert!(vec_set::contains(&registry.supported_lsts, &name), lsdfi_errors::StatusAlreadySet());
+            vec_set::remove(&mut registry.supported_lsts, &name);
         } else {
-            assert!(!vec_set::contains(&registry.supported_lsds, &name), lsdfi_errors::StatusAlreadySet());
-            vec_set::insert(&mut registry.supported_lsds, name);
+            assert!(!vec_set::contains(&registry.supported_lsts, &name), lsdfi_errors::StatusAlreadySet());
+            vec_set::insert(&mut registry.supported_lsts, name);
         };
 
         event::emit (LSTStatusUpdated {
@@ -93,29 +93,29 @@ module wisp_lsdfi::pool {
     public (friend) fun mint_wispSUI<T> (
         registry: &mut PoolRegistry,
         _aggregator_registry: &AggregatorRegistry,
-        lsd: Coin<T>,
+        lst: Coin<T>,
         ctx: &mut TxContext
     ): Coin<WISPSUI> {
-        let lsd_name = type_name::get<T>();
-        assert!(vec_set::contains(&registry.supported_lsds, &lsd_name), lsdfi_errors::LSDNotSupport());
-        let lsd_amount = coin::value(&lsd);
-        let wispSUI_amount = get_wispSUI_mint_amount(lsd_amount);
+        let lst_name = type_name::get<T>();
+        assert!(vec_set::contains(&registry.supported_lsts, &lst_name), lsdfi_errors::LSDNotSupport());
+        let lst_amount = coin::value(&lst);
+        let wispSUI_amount = get_wispSUI_mint_amount(lst_amount);
 
-        if(!bag::contains(&registry.balances, lsd_name)) {
-            bag::add(&mut registry.balances, lsd_name, balance::zero<T>());
+        if(!bag::contains(&registry.balances, lst_name)) {
+            bag::add(&mut registry.balances, lst_name, balance::zero<T>());
         };
         
         balance::join(
-            bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, lsd_name),
-            coin::into_balance(lsd)
+            bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, lst_name),
+            coin::into_balance(lst)
         );
 
         let wispSUI = coin::mint<WISPSUI>(option::borrow_mut(&mut registry.wispSUI_treasury), wispSUI_amount, ctx);
 
         event::emit(BalanceChanged {
             sender: tx_context::sender(ctx),
-            in_token: lsd_name,
-            in_amount: lsd_amount,
+            in_token: lst_name,
+            in_amount: lst_amount,
             out_token: type_name::get<WISPSUI>(),
             out_amount: wispSUI_amount
         });
@@ -129,13 +129,13 @@ module wisp_lsdfi::pool {
         wispSUI: Coin<WISPSUI>,
         ctx: &mut TxContext
     ): Coin<T> {
-        let lsd_name = type_name::get<T>();
-        assert!(vec_set::contains(&registry.supported_lsds, &lsd_name), lsdfi_errors::LSDNotSupport());
+        let lst_name = type_name::get<T>();
+        assert!(vec_set::contains(&registry.supported_lsts, &lst_name), lsdfi_errors::LSDNotSupport());
         let wispSUI_amount = coin::value(&wispSUI);
-        let lsd_amount = get_wispSUI_burn_amount(wispSUI_amount);
+        let lst_amount = get_wispSUI_burn_amount(wispSUI_amount);
         
-        assert!(balance::value(bag::borrow<TypeName, Balance<T>>(&registry.balances, lsd_name)) >= lsd_amount, lsdfi_errors::NotEnoughBalance());
-        let lsd_balance = balance::split(bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, lsd_name), lsd_amount);
+        assert!(balance::value(bag::borrow<TypeName, Balance<T>>(&registry.balances, lst_name)) >= lst_amount, lsdfi_errors::NotEnoughBalance());
+        let lst_balance = balance::split(bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, lst_name), lst_amount);
 
         coin::burn(option::borrow_mut(&mut registry.wispSUI_treasury), wispSUI);
 
@@ -143,11 +143,11 @@ module wisp_lsdfi::pool {
             sender: tx_context::sender(ctx),
             in_token: type_name::get<WISPSUI>(),
             in_amount: wispSUI_amount,
-            out_token: lsd_name,
-            out_amount: lsd_amount
+            out_token: lst_name,
+            out_amount: lst_amount
         });
 
-        coin::from_balance(lsd_balance, ctx)
+        coin::from_balance(lst_balance, ctx)
     }
 
     public (friend) fun swap<I, O> (
@@ -158,8 +158,8 @@ module wisp_lsdfi::pool {
     ): Coin<O> {
         let (in_name, out_name) = (type_name::get<I>(), type_name::get<O>());
 
-        assert!(vec_set::contains(&registry.supported_lsds, &in_name), lsdfi_errors::LSDNotSupport());
-        assert!(vec_set::contains(&registry.supported_lsds, &out_name), lsdfi_errors::LSDNotSupport());
+        assert!(vec_set::contains(&registry.supported_lsts, &in_name), lsdfi_errors::LSDNotSupport());
+        assert!(vec_set::contains(&registry.supported_lsts, &out_name), lsdfi_errors::LSDNotSupport());
 
         let in_amount = coin::value(&in_coin);
         let out_amount = get_swap_amount(in_amount);
@@ -188,9 +188,9 @@ module wisp_lsdfi::pool {
     }
 
     fun get_wispSUI_mint_amount (
-        lsd_amount: u64
+        lst_amount: u64
     ): u64 {
-        lsd_amount * get_weigh()
+        lst_amount * get_weigh()
     }
 
     fun get_wispSUI_burn_amount (
