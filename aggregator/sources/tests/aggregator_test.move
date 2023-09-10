@@ -7,9 +7,10 @@ module aggregator::aggregator_test {
     use sui::test_utils::assert_eq;
     use sui::clock::{Self, Clock};
     
+    use std::option;
     use std::type_name;
 
-    use aggregator::aggregator::{Self, AggregatorRegistry};
+    use aggregator::aggregator::{Self, Aggregator};
     use aggregator::access_control::{AdminCap, OperatorCap};
 
     struct LST_1 has drop {}
@@ -55,7 +56,7 @@ module aggregator::aggregator_test {
         {
             let admin_cap = test::take_from_sender<AdminCap>(test);
             let operator_cap = test::take_from_sender<OperatorCap>(test);
-            let registry = test::take_shared<AggregatorRegistry>(test);
+            let registry = test::take_shared<Aggregator>(test);
             let clock = test::take_shared<Clock>(test);
 
             transfer::public_transfer(operator_cap, operator);
@@ -73,10 +74,10 @@ module aggregator::aggregator_test {
         next_tx(test, owner);
         {
             let admin_cap = test::take_from_sender<AdminCap>(test);
-            let registry = test::take_shared<AggregatorRegistry>(test);
+            let registry = test::take_shared<Aggregator>(test);
 
-            aggregator::set_support_lst<LST_1>(&admin_cap, &mut registry, true, ctx(test));
-            aggregator::set_support_lst<LST_2>(&admin_cap, &mut registry, true, ctx(test));
+            aggregator::set_support_lst<LST_1>(&admin_cap, &mut registry, 1000, true);
+            aggregator::set_support_lst<LST_2>(&admin_cap, &mut registry, 2000, true);
 
             test::return_to_sender(test, admin_cap);
             test::return_shared(registry);
@@ -84,7 +85,7 @@ module aggregator::aggregator_test {
 
         next_tx(test, owner);
         {
-            let registry = test::take_shared<AggregatorRegistry>(test);
+            let registry = test::take_shared<Aggregator>(test);
             let list_name = aggregator::get_list_name(&registry);
 
             assert_eq(vec_set::contains(list_name, &type_name::get<LST_1>()), true);
@@ -101,7 +102,7 @@ module aggregator::aggregator_test {
         next_tx(test, operator);
         {
             let operator_cap = test::take_from_sender<OperatorCap>(test);
-            let registry = test::take_shared<AggregatorRegistry>(test);
+            let registry = test::take_shared<Aggregator>(test);
             let clock = test::take_shared<Clock>(test);
 
             aggregator::set_result<LST_1>(&operator_cap, &mut registry, LST_1_BACKED, &clock);
@@ -115,14 +116,18 @@ module aggregator::aggregator_test {
         next_tx(test, operator);
         {
             let clock = test::take_shared<Clock>(test);
-            let registry = test::take_shared<AggregatorRegistry>(test);
+            let registry = test::take_shared<Aggregator>(test);
+
+            let option_result_lst_1 = aggregator::get_result(&registry, type_name::get<LST_1>());
             
-            let (value, timestamp) = aggregator::get_aggregator_value(&registry, type_name::get<LST_1>());
+            let (value, timestamp) = aggregator::get_result_value(option::borrow(option_result_lst_1));
 
             assert_eq(value, LST_1_BACKED);
             assert_eq(timestamp, clock::timestamp_ms(&clock));
 
-            let (value, timestamp) = aggregator::get_aggregator_value(&registry, type_name::get<LST_2>());
+            let option_result_lst_2 = aggregator::get_result(&registry, type_name::get<LST_2>());
+            
+            let (value, timestamp) = aggregator::get_result_value(option::borrow(option_result_lst_2));
 
             assert_eq(value, LST_2_BACKED);
             assert_eq(timestamp, clock::timestamp_ms(&clock));
