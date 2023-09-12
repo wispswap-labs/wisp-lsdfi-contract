@@ -1,6 +1,7 @@
-module aggregator::aggregator {
+#[allow(unused_field)]
+module wisp_lsdfi_aggregator::aggregator {
     use std::type_name::{Self, TypeName};
-    use sui::object::{Self, UID, ID};
+    use sui::object::{Self, UID};
     use sui::table::{Self, Table};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
@@ -10,14 +11,13 @@ module aggregator::aggregator {
 
     use std::option::{Self, Option};
 
-    use aggregator::access_control::{Self, AdminCap, OperatorCap};
-    use aggregator::errors;
+    use wisp_lsdfi_aggregator::access_control::{Self, AdminCap, OperatorCap};
+    use wisp_lsdfi_aggregator::errors;
     
     struct Aggregator has key, store {
         id: UID,
         lst_names: VecSet<TypeName>,
         total_staked_sui: Table<TypeName, Option<Result>>,
-        risk_coefficients: Table<TypeName, u64>,
     }
 
     struct Result has copy, store, drop {
@@ -53,7 +53,6 @@ module aggregator::aggregator {
             id: object::new(ctx),
             lst_names: vec_set::empty(),
             total_staked_sui: table::new(ctx),
-            risk_coefficients: table::new(ctx),
         };
 
         let admin_cap = access_control::create_admin_cap(ctx);
@@ -65,9 +64,8 @@ module aggregator::aggregator {
     }
 
     public fun set_support_lst<T>(
-        admin_cap: &AdminCap,
+        _: &AdminCap,
         registry: &mut Aggregator,
-        risk_coefficient: u64,
         status: bool,
     ) {
         let name = type_name::get<T>();
@@ -76,35 +74,15 @@ module aggregator::aggregator {
             assert!(vec_set::contains(&registry.lst_names, &name), errors::StatusAlreadySet());
             vec_set::remove(&mut registry.lst_names, &name);
             table::remove(&mut registry.total_staked_sui, name);
-            table::remove(&mut registry.risk_coefficients, name);
         } else {
             assert!(!vec_set::contains(&registry.lst_names, &name), errors::StatusAlreadySet());
             vec_set::insert(&mut registry.lst_names, name);
             table::add(&mut registry.total_staked_sui, name, option::none());
-            table::add(&mut registry.risk_coefficients, name, 0);
-
-            set_risk_coefficient<T>(admin_cap, registry, risk_coefficient);
         };
 
         event::emit(LSTStatusUpdated {
             lst_name: name,
             status: status
-        });
-    }
-
-    public entry fun set_risk_coefficient<T>(
-        _: &AdminCap,
-        registry: &mut Aggregator,
-        risk_coefficient: u64
-    ) {
-        let name = type_name::get<T>();
-        assert!(vec_set::contains(&registry.lst_names, &name), errors::LSTNotSupported());
-
-        *table::borrow_mut(&mut registry.risk_coefficients, name) = risk_coefficient;
-
-        event::emit(RiskCoefficientUpdated {
-            lst_name: name,
-            risk_coefficient: risk_coefficient
         });
     }
 
@@ -125,7 +103,7 @@ module aggregator::aggregator {
         value: u64,
         clock: &Clock,
     ) {
-        assert!(vec_set::contains(&registry.lst_names, &name), errors::LSTNotSupported());
+        assert!(vec_set::contains(&registry.lst_names, &name), errors::LSTNotSupport());
 
         let result = Result {
             value: value,
@@ -142,6 +120,10 @@ module aggregator::aggregator {
 
     public fun get_list_name(registry: &Aggregator): &VecSet<TypeName> {
         &registry.lst_names
+    }
+
+    public fun supported_lst(registry: &Aggregator, name: TypeName): bool {
+        vec_set::contains(&registry.lst_names, &name)
     }
 
     public fun get_result(registry: &Aggregator, name: TypeName): &Option<Result> {

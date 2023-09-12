@@ -1,9 +1,9 @@
-module aggregator::access_control {
+module wisp_lsdfi_aggregator::access_control {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{TxContext};
     use sui::event;
     
-    friend aggregator::aggregator;
+    friend wisp_lsdfi_aggregator::aggregator;
 
     struct AdminCap has key, store {
         id: UID,

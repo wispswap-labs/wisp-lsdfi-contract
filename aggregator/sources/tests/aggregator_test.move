@@ -1,6 +1,6 @@
 #[test_only]
 #[allow(unused_function)]
-module aggregator::aggregator_test {
+module wisp_lsdfi_aggregator::aggregator_test {
     use sui::test_scenario::{Self as test, Scenario, ctx, next_tx};
     use sui::transfer;
     use sui::vec_set;
@@ -10,8 +10,8 @@ module aggregator::aggregator_test {
     use std::option;
     use std::type_name;
 
-    use aggregator::aggregator::{Self, Aggregator};
-    use aggregator::access_control::{AdminCap, OperatorCap};
+    use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
+    use wisp_lsdfi_aggregator::access_control::{AdminCap, OperatorCap};
 
     struct LST_1 has drop {}
     struct LST_2 has drop {}
@@ -76,8 +76,8 @@ module aggregator::aggregator_test {
             let admin_cap = test::take_from_sender<AdminCap>(test);
             let registry = test::take_shared<Aggregator>(test);
 
-            aggregator::set_support_lst<LST_1>(&admin_cap, &mut registry, 1000, true);
-            aggregator::set_support_lst<LST_2>(&admin_cap, &mut registry, 2000, true);
+            aggregator::set_support_lst<LST_1>(&admin_cap, &mut registry, true);
+            aggregator::set_support_lst<LST_2>(&admin_cap, &mut registry, true);
 
             test::return_to_sender(test, admin_cap);
             test::return_shared(registry);
