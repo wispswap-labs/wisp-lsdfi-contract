@@ -4,16 +4,8 @@
 version = 0
 
 dependencies = [
-  { name = "Aggregator" },
   { name = "Sui" },
-]
-
-[[move.package]]
-name = "Aggregator"
-source = { local = "../aggregator" }
-
-dependencies = [
-  { name = "Sui" },
+  { name = "WispLSDFIAggregator" },
 ]
 
 [[move.package]]
@@ -26,4 +18,12 @@ source = { git = "https://github.com/MystenLabs/sui.git", rev = "testnet", subdi
 
 dependencies = [
   { name = "MoveStdlib" },
+]
+
+[[move.package]]
+name = "WispLSDFIAggregator"
+source = { local = "../aggregator" }
+
+dependencies = [
+  { name = "Sui" },
 ]

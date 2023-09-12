@@ -1,5 +1,5 @@
 #[test_only]
-#[allow(unused_function)]
+#[allow(unused_use, unused_function, unused_variable)]
 module wisp_lsdfi::lsdfi_test {
     use sui::test_scenario::{Self as test, Scenario, ctx, next_tx};
     use sui::transfer;
@@ -9,12 +9,17 @@ module wisp_lsdfi::lsdfi_test {
     use sui::coin::{Self, Coin, TreasuryCap};
     
     use std::type_name;
+    use std::debug::print;
 
-    use aggregator::aggregator::{Self, AggregatorRegistry};
-    use aggregator::aggregator_test::{Self, LST_1, LST_2};
+    use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
+    use wisp_lsdfi_aggregator::aggregator_test::{Self, LST_1, LST_2};
     use wisp_lsdfi::pool::{Self, AdminCap, PoolRegistry};
     use wisp_lsdfi::lsdfi;
     use wisp_lsdfi::wispSUI::{Self, WISPSUI};
+
+    const SLOPE: u64 = 10_000;
+    const RISK_WEIGHT: u64 = 10_000;
+    const RISK_COFFICIENT: u64 = 10_000;
 
     #[test]
     fun test_init_package() {
@@ -24,16 +29,16 @@ module wisp_lsdfi::lsdfi_test {
     }
 
     #[test]
-    fun test_mint_wispSUI() {
+    fun test_deposit() {
         let test = scenario();
-        test_mint_wispSUI_(&mut test);
+        test_deposit_(&mut test);
         test::end(test);
     }
 
     #[test]
-    fun test_burn_wispSUI() {
+    fun test_withdraw() {
         let test = scenario();
-        test_burn_wispSUI_(&mut test);
+        test_withdraw_(&mut test);
         test::end(test);
     }
 
@@ -59,92 +64,128 @@ module wisp_lsdfi::lsdfi_test {
         {
             let admin_cap = test::take_from_sender<AdminCap>(test);
             let registry = test::take_shared<PoolRegistry>(test);
+            let aggregator = test::take_shared<Aggregator>(test);
             let wispSUI_treasury_cap = test::take_from_sender<TreasuryCap<WISPSUI>>(test);
 
-            pool::initialize(&admin_cap, &mut registry, wispSUI_treasury_cap);
-            pool::set_supported_lst<LST_1>(&admin_cap, &mut registry, true);
-            pool::set_supported_lst<LST_2>(&admin_cap, &mut registry, true);
-
+            pool::initialize(&admin_cap, &mut registry, wispSUI_treasury_cap, owner, SLOPE);
+            pool::set_support_lst<LST_1>(&admin_cap, &mut registry, &aggregator, true, RISK_WEIGHT, RISK_COFFICIENT);
+            pool::set_support_lst<LST_2>(&admin_cap, &mut registry, &aggregator, true, RISK_WEIGHT, RISK_COFFICIENT);
+            
             test::return_shared(registry);
             test::return_to_sender(test, admin_cap);
+            test::return_shared(aggregator);
         };
     }
 
-    fun test_mint_wispSUI_(test: &mut Scenario) {
+    fun test_deposit_(test: &mut Scenario) {
         let (_, _, user) = people();
 
         test_init_package_(test);
 
         next_tx(test, user);
-        {
+        {   
+            let clock = test::take_shared<Clock>(test);
             let registry = test::take_shared<PoolRegistry>(test);
-            let aggregator_registry = test::take_shared<AggregatorRegistry>(test);
+            let aggregator = test::take_shared<Aggregator>(test);
 
             let lst_1 = coin::mint_for_testing<LST_1>(1_000_000_000, ctx(test));
 
-            lsdfi::mint_wispSUI(&mut registry, &aggregator_registry, lst_1, ctx(test));
+            lsdfi::deposit(&mut registry, &aggregator, lst_1, &clock, ctx(test));
 
+            test::return_shared(clock);
             test::return_shared(registry);
-            test::return_shared(aggregator_registry);
+            test::return_shared(aggregator);
         };
 
         next_tx(test, user);
         {
             let wispSUI = test::take_from_sender<Coin<WISPSUI>>(test);
 
-            assert_eq(coin::burn_for_testing(wispSUI), 1_000_000_000);
-        }
-    }
-
-    fun test_burn_wispSUI_(test: &mut Scenario) {
-        let (_, _, user) = people();
-
-        test_mint_wispSUI_(test);
+            assert_eq(coin::burn_for_testing(wispSUI), 999_100_000);
+        };
 
         next_tx(test, user);
-        {
+        {   
+            let clock = test::take_shared<Clock>(test);
             let registry = test::take_shared<PoolRegistry>(test);
-            let aggregator_registry = test::take_shared<AggregatorRegistry>(test);
+            let aggregator = test::take_shared<Aggregator>(test);
 
-            let wispSUI = coin::mint_for_testing<WISPSUI>(1_000_000_000, ctx(test));
+            let lst_2 = coin::mint_for_testing<LST_2>(2_000_000_000, ctx(test));
 
-            lsdfi::burn_wispSUI<LST_1>(&mut registry, &aggregator_registry, wispSUI, ctx(test));
+            lsdfi::deposit(&mut registry, &aggregator, lst_2, &clock, ctx(test));
 
+            test::return_shared(clock);
             test::return_shared(registry);
-            test::return_shared(aggregator_registry);
+            test::return_shared(aggregator);
         };
 
         next_tx(test, user);
         {
-            let lst = test::take_from_sender<Coin<LST_1>>(test);
+            let wispSUI = test::take_from_sender<Coin<WISPSUI>>(test);
 
-            assert_eq(coin::burn_for_testing(lst), 1_000_000_000);
+            assert_eq(coin::burn_for_testing(wispSUI), 2_000_000_000);
+        };
+    }
+
+    fun test_deposit_bad_weights_(test: &mut Scenario) {
+
+    }
+
+    fun test_withdraw_(test: &mut Scenario) {
+        let (_, _, user) = people();
+
+        test_deposit_(test);
+        let wispSUI_mint = 1_500_000_000;
+        next_tx(test, user);
+        {
+            let registry = test::take_shared<PoolRegistry>(test);
+
+            let wispSUI = coin::mint_for_testing<WISPSUI>(wispSUI_mint, ctx(test));
+
+            let receipt = lsdfi::withdraw(&mut registry,  wispSUI, ctx(test));
+            lsdfi::consume_withdraw_receipt<LST_1>(&mut registry, &mut receipt, ctx(test));
+            lsdfi::consume_withdraw_receipt<LST_2>(&mut registry, &mut receipt, ctx(test));
+            lsdfi::drop_withdraw_receipt(receipt);
+
+            test::return_shared(registry);
+        };
+
+        next_tx(test, user);
+        {
+            let lst_1 = test::take_from_sender<Coin<LST_1>>(test);
+            let lst_2 = test::take_from_sender<Coin<LST_2>>(test);
+
+            let wispSUI_supply = 999_100_000 + 2_000_000_000;
+            assert_eq(coin::burn_for_testing(lst_1), 1_000_000_000 * wispSUI_mint / wispSUI_supply * (10_000  - 25) / 10_000);
+            assert_eq(coin::burn_for_testing(lst_2), 2_000_000_000 * wispSUI_mint / wispSUI_supply * (10_000  - 25) / 10_000);
         }
     }
 
     fun test_swap_(test: &mut Scenario) {
         let (_, _, user) = people();
 
-        test_mint_wispSUI_(test);
+        test_deposit_(test);
 
         next_tx(test, user);
         {
+            let clock = test::take_shared<Clock>(test);
             let registry = test::take_shared<PoolRegistry>(test);
-            let aggregator_registry = test::take_shared<AggregatorRegistry>(test);
+            let aggregator = test::take_shared<Aggregator>(test);
 
             let lst_2 = coin::mint_for_testing<LST_2>(1_000_000_000, ctx(test));
 
-            lsdfi::swap<LST_2, LST_1>(&mut registry, &aggregator_registry, lst_2, ctx(test));
+            lsdfi::swap<LST_2, LST_1>(&mut registry, &aggregator, lst_2, &clock, ctx(test));
 
+            test::return_shared(clock);
             test::return_shared(registry);
-            test::return_shared(aggregator_registry);
+            test::return_shared(aggregator);
         };
 
         next_tx(test, user);
         {
             let lst_1 = test::take_from_sender<Coin<LST_1>>(test);
 
-            assert_eq(coin::burn_for_testing(lst_1), 1_000_000_000);
+            assert_eq(coin::burn_for_testing(lst_1), 994_300_000);
         }
     }
 

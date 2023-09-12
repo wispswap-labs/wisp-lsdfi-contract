@@ -7,13 +7,20 @@ module wisp_lsdfi::pool {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::vec_set::{Self, VecSet};
+    use sui::clock::{Self, Clock};
+    use sui::table::{Self, Table};
+    use sui::sui::{SUI};
+
     use std::type_name::{Self, TypeName};
     use std::option::{Self, Option};
+    use std::vector;
 
     use wisp_lsdfi::wispSUI::WISPSUI;
     use wisp_lsdfi::lsdfi_errors;
+    use wisp_lsdfi::math;
+    use wisp_lsdfi::utils;
 
-    use aggregator::aggregator::{Self, AggregatorRegistry};
+    use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
 
     friend wisp_lsdfi::lsdfi;
 
@@ -25,8 +32,21 @@ module wisp_lsdfi::pool {
         id: UID,
         balances: Bag,
         supported_lsts: VecSet<TypeName>,
+        available_balances: Table<TypeName, u64>,
+        max_diff_weights: Table<TypeName, u64>,
+        risk_coefficients: Table<TypeName, u64>,
         wispSUI_treasury: Option<TreasuryCap<WISPSUI>>,
+        acceptable_result_time: u64,
+        slope: u64, // times basis points
+        base_fee: u64, // times basis points
+        redemption_fee: u64, // times basis points
+        sui_split_bps: u64, // times basis points
         fee_to: address
+    }
+
+    // "Hot potato" object
+    struct WithdrawReceipt {
+        withdraw_amounts: Table<TypeName, u64>
     }
 
     // Events
@@ -35,12 +55,48 @@ module wisp_lsdfi::pool {
         status: bool,
     }
 
-    struct BalanceChanged has copy, drop {
+    struct AcceptableResultTimeUpdated has copy, drop {
+        time: u64,
+    }
+
+    struct RiskWeightUpdated has copy, drop {
+        lst_name: TypeName,
+        max_diff_weight: u64,
+    }
+
+    struct RiskCoefficientUpdated has copy, drop {
+        lst_name: TypeName,
+        risk_coefficient: u64,
+    }
+
+    struct SlopeUpdated has copy, drop {
+        slope: u64,
+    }
+
+    struct FeeToUpdated has copy, drop {
+        fee_to: address,
+    }
+
+    struct Deposited has copy, drop {
+        sender: address,
+        in_token: TypeName,
+        in_amount: u64,
+        wispSUI_amount: u64,
+    }
+
+    struct Swapped has copy, drop {
         sender: address,
         in_token: TypeName,
         in_amount: u64,
         out_token: TypeName,
         out_amount: u64,
+    }
+
+    struct Withdrawal has copy, drop {
+        sender: address,
+        wispSUI_amount: u64,
+        out_tokens: vector<TypeName>,
+        out_amounts: vector<u64>,
     }
 
     fun init (ctx: &mut TxContext){
@@ -54,8 +110,16 @@ module wisp_lsdfi::pool {
             id: object::new(ctx),
             balances: bag::new(ctx),
             supported_lsts: vec_set::empty(),
+            available_balances: table::new(ctx),
+            max_diff_weights: table::new(ctx),
+            risk_coefficients: table::new(ctx),
             wispSUI_treasury: option::none(),
-            fee_to: sender
+            acceptable_result_time: 300_000, // 5 minutes
+            slope: 0,
+            base_fee: 10, // 0.1%
+            redemption_fee: 25, // 0.25%
+            sui_split_bps: 500, // 5%
+            fee_to: sender,
         };
 
         transfer::transfer(admin_cap, sender);
@@ -65,23 +129,53 @@ module wisp_lsdfi::pool {
     public entry fun initialize (
         _: &AdminCap,
         registry: &mut PoolRegistry,
-        wispSUI_treasury: TreasuryCap<WISPSUI>
+        wispSUI_treasury: TreasuryCap<WISPSUI>,
+        fee_to: address,
+        slope: u64
     ) {
         option::fill(&mut registry.wispSUI_treasury, wispSUI_treasury);
+        registry.fee_to = fee_to;
+        registry.slope = slope;
+
+        event::emit (SlopeUpdated {
+            slope: slope
+        });
+
+        event::emit (FeeToUpdated {
+            fee_to: fee_to
+        });
     }
 
-    public entry fun set_supported_lst<T> (
-        _: &AdminCap,
+    public entry fun set_support_lst<T> (
+        admin_cap: &AdminCap,
         registry: &mut PoolRegistry,
+        aggregator: &Aggregator,
         status: bool,
+        max_diff_weight: u64,
+        risk_coefficient: u64
     ) {
         let name = type_name::get<T>();
         if (!status) {
             assert!(vec_set::contains(&registry.supported_lsts, &name), lsdfi_errors::StatusAlreadySet());
             vec_set::remove(&mut registry.supported_lsts, &name);
+            table::remove(&mut registry.max_diff_weights, name);
+            table::remove(&mut registry.risk_coefficients, name);
         } else {
             assert!(!vec_set::contains(&registry.supported_lsts, &name), lsdfi_errors::StatusAlreadySet());
+            assert!(aggregator::supported_lst(aggregator, name), lsdfi_errors::AggregatorLSTNotSupport());
             vec_set::insert(&mut registry.supported_lsts, name);
+            table::add(&mut registry.max_diff_weights, name, 0);
+            table::add(&mut registry.risk_coefficients, name, 0);
+            set_max_diff_weight<T>(admin_cap, registry, max_diff_weight);
+            set_risk_coefficient<T>(admin_cap, registry, risk_coefficient);
+
+            if(!bag::contains(&registry.balances, name)) {
+                bag::add(&mut registry.balances, name, balance::zero<T>());
+            };
+
+            if(!table::contains(&registry.available_balances, name)) {
+                table::add(&mut registry.available_balances, name, 0);
+            };
         };
 
         event::emit (LSTStatusUpdated {
@@ -90,93 +184,171 @@ module wisp_lsdfi::pool {
         });
     }
 
-    public (friend) fun mint_wispSUI<T> (
+    public entry fun set_max_diff_weight<T>(
+        _: &AdminCap,
         registry: &mut PoolRegistry,
-        _aggregator_registry: &AggregatorRegistry,
+        max_diff_weight: u64
+    ) {
+        let name = type_name::get<T>();
+        assert!(vec_set::contains(&registry.supported_lsts, &name), lsdfi_errors::LSTNotSupport());
+
+        *table::borrow_mut(&mut registry.max_diff_weights, name) = max_diff_weight;
+
+        event::emit (RiskWeightUpdated {
+            lst_name: name,
+            max_diff_weight
+        });
+    }
+
+    public entry fun set_risk_coefficient<T>(
+        _: &AdminCap,
+        registry: &mut PoolRegistry,
+        risk_coefficient: u64
+    ) {
+        let name = type_name::get<T>();
+        assert!(vec_set::contains(&registry.supported_lsts, &name), lsdfi_errors::LSTNotSupport());
+
+        *table::borrow_mut(&mut registry.risk_coefficients, name) = risk_coefficient;
+
+        event::emit(RiskCoefficientUpdated {
+            lst_name: name,
+            risk_coefficient: risk_coefficient
+        });
+    }
+
+    public entry fun set_acceptable_result_time (
+        _: &AdminCap,
+        registry: &mut PoolRegistry,
+        time: u64
+    ) {
+        registry.acceptable_result_time = time;
+
+        event::emit (AcceptableResultTimeUpdated {
+            time: time
+        });
+    }
+
+    public (friend) fun deposit<T> (
+        registry: &mut PoolRegistry,
+        aggregator : &Aggregator,
         lst: Coin<T>,
+        clock: &Clock,
         ctx: &mut TxContext
     ): Coin<WISPSUI> {
         let lst_name = type_name::get<T>();
-        assert!(vec_set::contains(&registry.supported_lsts, &lst_name), lsdfi_errors::LSDNotSupport());
+        assert!(vec_set::contains(&registry.supported_lsts, &lst_name), lsdfi_errors::LSTNotSupport());
         let lst_amount = coin::value(&lst);
-        let wispSUI_amount = get_wispSUI_mint_amount(lst_amount);
-
-        if(!bag::contains(&registry.balances, lst_name)) {
-            bag::add(&mut registry.balances, lst_name, balance::zero<T>());
-        };
-        
-        balance::join(
-            bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, lst_name),
-            coin::into_balance(lst)
+        let wispSUI_amount = get_deposit_amount(
+            registry,
+            aggregator,
+            lst_name,
+            lst_amount,
+            clock,
         );
+        
+        put_coin_in(registry, lst);
 
         let wispSUI = coin::mint<WISPSUI>(option::borrow_mut(&mut registry.wispSUI_treasury), wispSUI_amount, ctx);
 
-        event::emit(BalanceChanged {
+        event::emit(Deposited {
             sender: tx_context::sender(ctx),
             in_token: lst_name,
             in_amount: lst_amount,
-            out_token: type_name::get<WISPSUI>(),
-            out_amount: wispSUI_amount
+            wispSUI_amount: wispSUI_amount
         });
 
         wispSUI
     }
 
-    public (friend) fun burn_wispSUI<T> (
+    public (friend) fun withdraw (
         registry: &mut PoolRegistry,
-        _aggregator_registry: &AggregatorRegistry,
         wispSUI: Coin<WISPSUI>,
         ctx: &mut TxContext
-    ): Coin<T> {
-        let lst_name = type_name::get<T>();
-        assert!(vec_set::contains(&registry.supported_lsts, &lst_name), lsdfi_errors::LSDNotSupport());
+    ): WithdrawReceipt {
         let wispSUI_amount = coin::value(&wispSUI);
-        let lst_amount = get_wispSUI_burn_amount(wispSUI_amount);
+        let withdraw_amount = wispSUI_amount - wispSUI_amount * registry.redemption_fee / utils::basis_points();
+        let wispSUI_supply: u64 = coin::total_supply<WISPSUI>(option::borrow(&registry.wispSUI_treasury));
+
+        let supported_lsts = vec_set::keys(&registry.supported_lsts);
         
-        assert!(balance::value(bag::borrow<TypeName, Balance<T>>(&registry.balances, lst_name)) >= lst_amount, lsdfi_errors::NotEnoughBalance());
-        let lst_balance = balance::split(bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, lst_name), lst_amount);
+        let index = 0;
+
+        let receipt = WithdrawReceipt {
+            withdraw_amounts: table::new(ctx)
+        };
+
+        let withdraw_tokens = vector::empty<TypeName>();
+        let withdraw_amounts = vector::empty<u64>();
+        while (index < vector::length(supported_lsts)) {
+            let lst_name = *vector::borrow(supported_lsts, index);
+            let lst_balance = *table::borrow(&registry.available_balances, lst_name);
+            let withdraw_lst_amount = lst_balance * withdraw_amount / wispSUI_supply;
+
+            vector::push_back(&mut withdraw_tokens, lst_name);
+            vector::push_back(&mut withdraw_amounts, withdraw_lst_amount);
+            table::add(&mut receipt.withdraw_amounts, lst_name, withdraw_lst_amount);
+
+            index = index + 1;
+        };
 
         coin::burn(option::borrow_mut(&mut registry.wispSUI_treasury), wispSUI);
 
-        event::emit(BalanceChanged {
+        event::emit(Withdrawal {
             sender: tx_context::sender(ctx),
-            in_token: type_name::get<WISPSUI>(),
-            in_amount: wispSUI_amount,
-            out_token: lst_name,
-            out_amount: lst_amount
+            wispSUI_amount: wispSUI_amount,
+            out_tokens: withdraw_tokens,
+            out_amounts: withdraw_amounts
         });
 
-        coin::from_balance(lst_balance, ctx)
+        receipt
+    }
+
+    public (friend) fun consume_withdraw_receipt<T> (
+        registry: &mut PoolRegistry,
+        receipt: &mut WithdrawReceipt,
+        ctx: &mut TxContext
+    ): Coin<T> {
+        let lst_name = type_name::get<T>();
+
+        assert!(table::contains(&receipt.withdraw_amounts, lst_name), lsdfi_errors::ReceiptTokenEmpty());
+        
+        let withdraw_amount = table::remove(&mut receipt.withdraw_amounts, lst_name);
+        take_coin_out(registry, withdraw_amount, ctx)
+    }
+
+    public (friend) fun drop_withdraw_receipt (
+        receipt: WithdrawReceipt,
+    ) {
+        assert!(table::is_empty(&receipt.withdraw_amounts), lsdfi_errors::ReceiptNotEmpty());
+        let WithdrawReceipt{withdraw_amounts} = receipt;
+        table::drop(withdraw_amounts);
     }
 
     public (friend) fun swap<I, O> (
         registry: &mut PoolRegistry,
-        _aggregator_registry: &AggregatorRegistry,
+        aggregator: &Aggregator,
         in_coin: Coin<I>,
+        clock: &Clock,
         ctx: &mut TxContext
     ): Coin<O> {
         let (in_name, out_name) = (type_name::get<I>(), type_name::get<O>());
 
-        assert!(vec_set::contains(&registry.supported_lsts, &in_name), lsdfi_errors::LSDNotSupport());
-        assert!(vec_set::contains(&registry.supported_lsts, &out_name), lsdfi_errors::LSDNotSupport());
+        assert!(vec_set::contains(&registry.supported_lsts, &in_name), lsdfi_errors::LSTNotSupport());
+        assert!(vec_set::contains(&registry.supported_lsts, &out_name), lsdfi_errors::LSTNotSupport());
 
         let in_amount = coin::value(&in_coin);
-        let out_amount = get_swap_amount(in_amount);
-
-        assert!(balance::value(bag::borrow<TypeName, Balance<O>>(&registry.balances, out_name)) >= out_amount, lsdfi_errors::NotEnoughBalance());
-        let out_balance = balance::split(bag::borrow_mut<TypeName, Balance<O>>(&mut registry.balances, out_name), out_amount);
-
-        if(!bag::contains(&registry.balances, in_name)) {
-            bag::add(&mut registry.balances, in_name, balance::zero<I>());
-        };
-
-        balance::join(
-            bag::borrow_mut<TypeName, Balance<I>>(&mut registry.balances, in_name),
-            coin::into_balance(in_coin)
+        let out_amount = get_swap_amount(
+            registry,
+            aggregator,
+            in_name,
+            out_name,
+            in_amount,
+            clock
         );
 
-        event::emit(BalanceChanged {
+        assert!(balance::value(bag::borrow<TypeName, Balance<O>>(&registry.balances, out_name)) >= out_amount, lsdfi_errors::NotEnoughBalance());
+
+        event::emit(Swapped {
             sender: tx_context::sender(ctx),
             in_token: in_name,
             in_amount,
@@ -184,29 +356,182 @@ module wisp_lsdfi::pool {
             out_amount
         });
 
-        coin::from_balance(out_balance, ctx)
+        put_coin_in(registry, in_coin);
+        take_coin_out(registry, out_amount, ctx)
     }
 
-    fun get_wispSUI_mint_amount (
-        lst_amount: u64
-    ): u64 {
-        lst_amount * get_weigh()
+    fun put_coin_in<T>(
+        registry: &mut PoolRegistry,
+        coin: Coin<T>
+    ) {
+        let name = type_name::get<T>();
+        let amount = coin::value(&coin);
+        let current_balance = *table::borrow(&mut registry.available_balances, name);
+
+        *table::borrow_mut(&mut registry.available_balances, name) = current_balance + amount;
+        balance::join(
+            bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, name),
+            coin::into_balance(coin)
+        );
     }
 
-    fun get_wispSUI_burn_amount (
-        wispSUI_amount: u64
+    fun take_coin_out<T>(
+        registry: &mut PoolRegistry,
+        amount: u64,
+        ctx: &mut TxContext
+    ): Coin<T> {
+        let name = type_name::get<T>();
+        let current_balance = *table::borrow(&mut registry.available_balances, name);
+
+        *table::borrow_mut(&mut registry.available_balances, name) = current_balance - amount;
+        let balance = balance::split(bag::borrow_mut<TypeName, Balance<T>>(&mut registry.balances, name), amount);
+
+        coin::from_balance(balance, ctx)
+    }
+
+    fun get_deposit_amount (
+        registry: &PoolRegistry,
+        aggregator: &Aggregator,
+        lst_name: TypeName,
+        lst_amount: u64,
+        clock: &Clock
     ): u64 {
-        wispSUI_amount * get_weigh()
+        let dynamic_fee = cal_dynamic_fee(
+            registry,
+            aggregator,
+            lst_name,
+            lst_amount,
+            type_name::get<WISPSUI>(),
+            0,
+            clock
+        );
+
+        let fee = if (dynamic_fee > (registry.base_fee as u128)) {
+            dynamic_fee - (registry.base_fee as u128)
+        } else {
+            0
+        };
+
+        let wispSUI_amount = (lst_amount as u128) * (utils::basis_points_u128() - fee) / utils::basis_points_u128();
+        (wispSUI_amount as u64)
     }
 
     fun get_swap_amount(
+        registry: &PoolRegistry,
+        aggregator: &Aggregator,
+        in_lst_name: TypeName,
+        out_lst_name: TypeName,
         in_amount: u64,
+        clock: &Clock
     ): u64 {
-        in_amount * get_weigh()
+        let dynamic_fee = cal_dynamic_fee(
+            registry,
+            aggregator,
+            in_lst_name,
+            in_amount,
+            out_lst_name,
+            in_amount,
+            clock
+        );
+
+        let out_amount = (in_amount as u128) * (utils::basis_points_u128() - (dynamic_fee + (registry.base_fee as u128))) / utils::basis_points_u128();
+        (out_amount as u64)
     }
 
-    fun get_weigh (): u64 {
-        1
+
+    // All weight are normalized to utils::NORMALIZED_FACTOR
+    public fun cal_dynamic_fee(
+        registry: &PoolRegistry,
+        aggregator: &Aggregator,
+        in_name: TypeName,
+        in_amount: u64,
+        out_name: TypeName,
+        out_amount: u64,
+        clock: &Clock
+    ): u128 {
+        let optimal_weights = vector::empty<u256>();
+        let cur_weights = vector::empty<u256>();
+        let pos_weights = vector::empty<u256>();
+
+        let total_optimal_weights = 0;
+        let total_cur_weights = 0;
+        let total_pos_weights = 0;
+
+        let supported_lsts = vec_set::keys(&registry.supported_lsts);
+        let index = 0;
+
+        while (index < vector::length(supported_lsts)) {
+            let lst_name = *vector::borrow(supported_lsts, index);
+            let optimal_weight = get_single_weight_from_aggregator(
+                registry,
+                aggregator,
+                lst_name,
+                clock
+            );
+            vector::push_back(&mut optimal_weights, optimal_weight);
+            total_optimal_weights = total_optimal_weights + optimal_weight;
+
+            let cur_weight = (*table::borrow(&registry.available_balances, lst_name) as u256);
+            vector::push_back(&mut cur_weights, cur_weight);
+            total_cur_weights = total_cur_weights + cur_weight;
+
+            let pos_weight: u256;
+            if (lst_name == in_name) {
+                pos_weight = (*table::borrow(&registry.available_balances, lst_name) + in_amount as u256);
+            } else if (lst_name == out_name) {
+                pos_weight = (*table::borrow(&registry.available_balances, lst_name) - out_amount as u256);
+            } else {
+                pos_weight = (*table::borrow(&registry.available_balances, lst_name) as u256);
+            };
+            vector::push_back(&mut pos_weights, pos_weight);
+            total_pos_weights = total_pos_weights + pos_weight;
+
+            index = index + 1;
+        };
+
+        let normalized_optimal_weights = math::normalize_weight(&optimal_weights, total_optimal_weights);
+        let normalized_cur_weights = math::normalize_weight(&cur_weights, total_cur_weights);
+        let normalized_pos_weights = math::normalize_weight(&pos_weights, total_pos_weights);
+
+        let cur_diff = math::cal_diff(&normalized_optimal_weights, &normalized_cur_weights);
+        let pos_diff = math::cal_diff(&normalized_optimal_weights, &normalized_pos_weights);
+
+        cal_dynamic_fee_from_diffs(registry, cur_diff, pos_diff)
+    }
+
+    // Calculate dynamic_fee in basis points
+    fun cal_dynamic_fee_from_diffs(
+        registry: &PoolRegistry,
+        cur_diff: u256,
+        pos_diff: u256
+    ): u128 {
+        let slope = (registry.slope as u256);
+        let dynamic_fee = 0;
+
+        if (pos_diff > cur_diff) {
+            let change = pos_diff - cur_diff;
+            dynamic_fee = (
+                change * slope + 
+                math::square_u256(change * slope) / utils::normalize_factor_u256() / utils::slope_decimals_u256() / 2
+            ) * utils::basis_points_u256() / utils::normalize_factor_u256() / utils::slope_decimals_u256();
+        };
+
+        (dynamic_fee as u128)
+    }
+
+    fun get_single_weight_from_aggregator(
+        registry: &PoolRegistry,
+        aggregator: &Aggregator,
+        name: TypeName,
+        clock: &Clock
+    ): u256 {
+        let result = aggregator::get_result(aggregator, name);
+        assert!(option::is_some(result), lsdfi_errors::AggregatorResultNotSet());
+        
+        let (value, timestamp) = aggregator::get_result_value(option::borrow(result));
+        assert!(clock::timestamp_ms(clock) - timestamp < registry.acceptable_result_time, lsdfi_errors::AggregatorResultTooOld());
+
+        (value as u256) * (*table::borrow(&registry.risk_coefficients, name) as u256)
     }
 
     #[test_only]
