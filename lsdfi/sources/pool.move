@@ -585,6 +585,51 @@ module wisp_lsdfi::pool {
         (value as u256) * (*table::borrow(&registry.risk_coefficients, name) as u256)
     }
 
+    // VIEW FUNCTIONS
+    public fun supported_lsts(registry: &LSDFIPoolRegistry): &VecSet<TypeName> {
+        &registry.supported_lsts
+    }
+
+    public fun available_balances(registry: &LSDFIPoolRegistry): &Table<TypeName, u64> {
+        &registry.available_balances
+    }
+
+    public fun max_diff_weights(registry: &LSDFIPoolRegistry): &Table<TypeName, u64> {
+        &registry.max_diff_weights
+    }
+
+    public fun risk_coefficients(registry: &LSDFIPoolRegistry): &Table<TypeName, u64> {
+        &registry.risk_coefficients
+    }
+
+    public fun wispSUI_treasury(registry: &LSDFIPoolRegistry): &Option<TreasuryCap<WISPSUI>> {
+        &registry.wispSUI_treasury
+    }
+
+    public fun acceptable_result_time(registry: &LSDFIPoolRegistry): u64 {
+        registry.acceptable_result_time
+    }
+
+    public fun slope(registry: &LSDFIPoolRegistry): u64 {
+        registry.slope
+    }
+
+    public fun base_fee(registry: &LSDFIPoolRegistry): u64 {
+        registry.base_fee
+    }
+
+    public fun redemption_fee(registry: &LSDFIPoolRegistry): u64 {
+        registry.redemption_fee
+    }
+
+    public fun sui_split_bps(registry: &LSDFIPoolRegistry): u64 {
+        registry.sui_split_bps
+    }
+
+    public fun fee_to(registry: &LSDFIPoolRegistry): address {
+        registry.fee_to
+    }
+
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
         init(ctx);
