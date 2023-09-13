@@ -1,7 +1,7 @@
 module stwisp::stwisp {
     use std::option;
     use std::ascii;
-    use sui::coin::{Self, TreasuryCap};
+    use sui::coin::{Self, Coin, TreasuryCap};
     use sui::transfer;
     use sui::tx_context::{TxContext};
     use sui::url;
@@ -25,6 +25,10 @@ module stwisp::stwisp {
 
     public entry fun mint_for_testing(treasury: &mut TreasuryCap<STWISP>, amount: u64, recipient: address, ctx: &mut TxContext) {
         transfer::public_transfer(coin::mint(treasury, amount, ctx), recipient)
+    }
+
+    public fun mint_for_testing_non_entry(treasury: &mut TreasuryCap<STWISP>, amount: u64, ctx: &mut TxContext): Coin<STWISP> {
+        coin::mint(treasury, amount, ctx)
     }
 
     public entry fun transfer(c: coin::Coin<STWISP>, recipient: address) {

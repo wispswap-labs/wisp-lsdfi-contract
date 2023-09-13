@@ -1,10 +1,13 @@
 [package]
-name = "StSUI"
+name = "stsui_adapter"
 version = "0.0.1"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir="crates/sui-framework/packages/sui-framework/", rev = "testnet" }
+WispLSDFi = { local = "../../lsdfi" }
+WispLSDFIAggregator = { local = "../../aggregator"}
+StSUI = { local = "../../test_lst_tokens/stsui" }
 
 [addresses]
-stsui =  "0x0"
+stsui_adapter =  "0x0"
 sui = "0x2"

@@ -40,7 +40,7 @@ module wisp_lsdfi_aggregator::aggregator_test {
         test::end(test);
     }
 
-    fun test_init_package_(test: &mut Scenario) {
+    public fun test_init_package_(test: &mut Scenario) {
         let (owner, operator, _) = people();
 
         let clock: Clock = clock::create_for_testing(ctx(test));
