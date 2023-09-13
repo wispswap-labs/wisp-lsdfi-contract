@@ -5,6 +5,7 @@ version = "1.0.0"
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir="crates/sui-framework/packages/sui-framework/", rev = "testnet" }
 WispLSDFIAggregator = { local = "../aggregator"}
+WispExchange = { local = "../../wispswap-smart-contracts/exchange" } 
 
 [addresses]
 wisp_lsdfi = "0x0"

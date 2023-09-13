@@ -22,13 +22,16 @@ module wisp_lsdfi::pool {
 
     use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
 
+    use wisp::pool::{Self, PoolRegistry};
+    use wisp::comparator;
+
     friend wisp_lsdfi::lsdfi;
 
     struct AdminCap has key, store {
         id: UID,
     }
 
-    struct PoolRegistry has key, store {
+    struct LSDFIPoolRegistry has key, store {
         id: UID,
         balances: Bag,
         supported_lsts: VecSet<TypeName>,
@@ -41,7 +44,8 @@ module wisp_lsdfi::pool {
         base_fee: u64, // times basis points
         redemption_fee: u64, // times basis points
         sui_split_bps: u64, // times basis points
-        fee_to: address
+        fee_to: address,
+        is_sui_smaller_than_wispSUI: bool,
     }
 
     // "Hot potato" object
@@ -106,7 +110,14 @@ module wisp_lsdfi::pool {
             id: object::new(ctx)
         };
 
-        let pool_registry = PoolRegistry {
+        let res = comparator::compare(&type_name::get<SUI>(), &type_name::get<WISPSUI>());
+        let is_sui_smaller_than_wispSUI = if (comparator::is_smaller_than(&res)) {
+            true
+        } else {
+            false
+        };
+
+        let pool_registry = LSDFIPoolRegistry {
             id: object::new(ctx),
             balances: bag::new(ctx),
             supported_lsts: vec_set::empty(),
@@ -120,6 +131,7 @@ module wisp_lsdfi::pool {
             redemption_fee: 25, // 0.25%
             sui_split_bps: 500, // 5%
             fee_to: sender,
+            is_sui_smaller_than_wispSUI
         };
 
         transfer::transfer(admin_cap, sender);
@@ -128,7 +140,7 @@ module wisp_lsdfi::pool {
 
     public entry fun initialize (
         _: &AdminCap,
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         wispSUI_treasury: TreasuryCap<WISPSUI>,
         fee_to: address,
         slope: u64
@@ -148,7 +160,7 @@ module wisp_lsdfi::pool {
 
     public entry fun set_support_lst<T> (
         admin_cap: &AdminCap,
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         aggregator: &Aggregator,
         status: bool,
         max_diff_weight: u64,
@@ -186,7 +198,7 @@ module wisp_lsdfi::pool {
 
     public entry fun set_max_diff_weight<T>(
         _: &AdminCap,
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         max_diff_weight: u64
     ) {
         let name = type_name::get<T>();
@@ -202,7 +214,7 @@ module wisp_lsdfi::pool {
 
     public entry fun set_risk_coefficient<T>(
         _: &AdminCap,
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         risk_coefficient: u64
     ) {
         let name = type_name::get<T>();
@@ -218,7 +230,7 @@ module wisp_lsdfi::pool {
 
     public entry fun set_acceptable_result_time (
         _: &AdminCap,
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         time: u64
     ) {
         registry.acceptable_result_time = time;
@@ -229,7 +241,7 @@ module wisp_lsdfi::pool {
     }
 
     public (friend) fun deposit<T> (
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         aggregator : &Aggregator,
         lst: Coin<T>,
         clock: &Clock,
@@ -248,7 +260,7 @@ module wisp_lsdfi::pool {
         
         put_coin_in(registry, lst);
 
-        let wispSUI = coin::mint<WISPSUI>(option::borrow_mut(&mut registry.wispSUI_treasury), wispSUI_amount, ctx);
+        let wispSUI = mint_wispSUI(registry, wispSUI_amount, ctx);
 
         event::emit(Deposited {
             sender: tx_context::sender(ctx),
@@ -260,13 +272,43 @@ module wisp_lsdfi::pool {
         wispSUI
     }
 
+    // SUI deposit rate is 1:1
+    public (friend) fun deposit_SUI (
+        registry: &mut LSDFIPoolRegistry,
+        exchange_pool_registry: &mut PoolRegistry,
+        _aggregator : &Aggregator,
+        sui: Coin<SUI>, 
+        ctx: &mut TxContext
+    ): Coin<WISPSUI> {
+        let sui_amount = coin::value(&sui);
+        let to_pool_amount = ((sui_amount as u128) * (registry.sui_split_bps as u128) / (utils::basis_points_u128() as u128) as u64);
+        let to_pool_SUI = coin::split<SUI>(&mut sui, to_pool_amount, ctx);
+        
+        if (registry.is_sui_smaller_than_wispSUI) {
+            let (lp, wisp_SUI) = pool::zap_in_first<SUI, WISPSUI>(exchange_pool_registry, &mut to_pool_SUI, to_pool_amount, ctx);
+            transfer::public_transfer(lp, registry.fee_to);
+            utils::transfer_coin<SUI>(to_pool_SUI, registry.fee_to);
+            utils::transfer_coin<WISPSUI>(wisp_SUI, registry.fee_to);
+        } else {
+            let (lp, wisp_SUI) = pool::zap_in_second<WISPSUI, SUI>(exchange_pool_registry, &mut to_pool_SUI, to_pool_amount, ctx);
+            transfer::public_transfer(lp, registry.fee_to);
+            utils::transfer_coin<SUI>(to_pool_SUI, registry.fee_to);
+            utils::transfer_coin<WISPSUI>(wisp_SUI, registry.fee_to);
+        };
+
+        utils::transfer_coin<SUI>(sui, registry.fee_to); // PLACEHOLDER
+
+        let wispSUI = mint_wispSUI(registry, sui_amount, ctx);
+        wispSUI
+    }
+
     public (friend) fun withdraw (
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         wispSUI: Coin<WISPSUI>,
         ctx: &mut TxContext
     ): WithdrawReceipt {
         let wispSUI_amount = coin::value(&wispSUI);
-        let withdraw_amount = wispSUI_amount - wispSUI_amount * registry.redemption_fee / utils::basis_points();
+        let withdraw_amount = wispSUI_amount - ((wispSUI_amount as u128) * (registry.redemption_fee as u128) / (utils::basis_points_u128() as u128) as u64);
         let wispSUI_supply: u64 = coin::total_supply<WISPSUI>(option::borrow(&registry.wispSUI_treasury));
 
         let supported_lsts = vec_set::keys(&registry.supported_lsts);
@@ -282,7 +324,7 @@ module wisp_lsdfi::pool {
         while (index < vector::length(supported_lsts)) {
             let lst_name = *vector::borrow(supported_lsts, index);
             let lst_balance = *table::borrow(&registry.available_balances, lst_name);
-            let withdraw_lst_amount = lst_balance * withdraw_amount / wispSUI_supply;
+            let withdraw_lst_amount = ((lst_balance as u128) * (withdraw_amount as u128) / (wispSUI_supply as u128) as u64);
 
             vector::push_back(&mut withdraw_tokens, lst_name);
             vector::push_back(&mut withdraw_amounts, withdraw_lst_amount);
@@ -304,7 +346,7 @@ module wisp_lsdfi::pool {
     }
 
     public (friend) fun consume_withdraw_receipt<T> (
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         receipt: &mut WithdrawReceipt,
         ctx: &mut TxContext
     ): Coin<T> {
@@ -325,7 +367,7 @@ module wisp_lsdfi::pool {
     }
 
     public (friend) fun swap<I, O> (
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         aggregator: &Aggregator,
         in_coin: Coin<I>,
         clock: &Clock,
@@ -361,7 +403,7 @@ module wisp_lsdfi::pool {
     }
 
     fun put_coin_in<T>(
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         coin: Coin<T>
     ) {
         let name = type_name::get<T>();
@@ -376,7 +418,7 @@ module wisp_lsdfi::pool {
     }
 
     fun take_coin_out<T>(
-        registry: &mut PoolRegistry,
+        registry: &mut LSDFIPoolRegistry,
         amount: u64,
         ctx: &mut TxContext
     ): Coin<T> {
@@ -389,8 +431,16 @@ module wisp_lsdfi::pool {
         coin::from_balance(balance, ctx)
     }
 
+    fun mint_wispSUI(
+        registry: &mut LSDFIPoolRegistry,
+        amount: u64,
+        ctx: &mut TxContext
+    ): Coin<WISPSUI> {
+        coin::mint<WISPSUI>(option::borrow_mut(&mut registry.wispSUI_treasury), amount, ctx)
+    }
+
     fun get_deposit_amount (
-        registry: &PoolRegistry,
+        registry: &LSDFIPoolRegistry,
         aggregator: &Aggregator,
         lst_name: TypeName,
         lst_amount: u64,
@@ -417,7 +467,7 @@ module wisp_lsdfi::pool {
     }
 
     fun get_swap_amount(
-        registry: &PoolRegistry,
+        registry: &LSDFIPoolRegistry,
         aggregator: &Aggregator,
         in_lst_name: TypeName,
         out_lst_name: TypeName,
@@ -441,7 +491,7 @@ module wisp_lsdfi::pool {
 
     // All weight are normalized to utils::NORMALIZED_FACTOR
     public fun cal_dynamic_fee(
-        registry: &PoolRegistry,
+        registry: &LSDFIPoolRegistry,
         aggregator: &Aggregator,
         in_name: TypeName,
         in_amount: u64,
@@ -501,7 +551,7 @@ module wisp_lsdfi::pool {
 
     // Calculate dynamic_fee in basis points
     fun cal_dynamic_fee_from_diffs(
-        registry: &PoolRegistry,
+        registry: &LSDFIPoolRegistry,
         cur_diff: u256,
         pos_diff: u256
     ): u128 {
@@ -520,7 +570,7 @@ module wisp_lsdfi::pool {
     }
 
     fun get_single_weight_from_aggregator(
-        registry: &PoolRegistry,
+        registry: &LSDFIPoolRegistry,
         aggregator: &Aggregator,
         name: TypeName,
         clock: &Clock

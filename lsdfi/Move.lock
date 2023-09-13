@@ -5,6 +5,7 @@ version = 0
 
 dependencies = [
   { name = "Sui" },
+  { name = "WispExchange" },
   { name = "WispLSDFIAggregator" },
 ]
 
@@ -18,6 +19,14 @@ source = { git = "https://github.com/MystenLabs/sui.git", rev = "testnet", subdi
 
 dependencies = [
   { name = "MoveStdlib" },
+]
+
+[[move.package]]
+name = "WispExchange"
+source = { local = "../../wispswap-smart-contracts/exchange" }
+
+dependencies = [
+  { name = "Sui" },
 ]
 
 [[move.package]]

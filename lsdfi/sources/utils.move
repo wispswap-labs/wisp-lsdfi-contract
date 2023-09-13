@@ -42,4 +42,12 @@ module wisp_lsdfi::utils {
     public fun slope_decimals_u256(): u256 {
         (SLOPE_DECIMALS as u256)
     }
+
+    public fun transfer_coin<T>(coin: Coin<T>, receipient: address) {
+        if(coin::value(&coin) > 0) {
+            transfer::public_transfer(coin, receipient);
+        } else {
+            coin::destroy_zero(coin);
+        };
+    }
 }

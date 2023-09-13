@@ -63,7 +63,7 @@ module wisp_lsdfi_aggregator::aggregator {
         transfer::public_transfer(operator_cap, tx_context::sender(ctx));
     }
 
-    public fun set_support_lst<T>(
+    public entry fun set_support_lst<T>(
         _: &AdminCap,
         registry: &mut Aggregator,
         status: bool,

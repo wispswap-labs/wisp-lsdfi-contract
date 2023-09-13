@@ -13,7 +13,7 @@ module wisp_lsdfi::lsdfi_test {
 
     use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
     use wisp_lsdfi_aggregator::aggregator_test::{Self, LST_1, LST_2};
-    use wisp_lsdfi::pool::{Self, AdminCap, PoolRegistry};
+    use wisp_lsdfi::pool::{Self, AdminCap, LSDFIPoolRegistry};
     use wisp_lsdfi::lsdfi;
     use wisp_lsdfi::wispSUI::{Self, WISPSUI};
 
@@ -63,7 +63,7 @@ module wisp_lsdfi::lsdfi_test {
         next_tx(test, owner);
         {
             let admin_cap = test::take_from_sender<AdminCap>(test);
-            let registry = test::take_shared<PoolRegistry>(test);
+            let registry = test::take_shared<LSDFIPoolRegistry>(test);
             let aggregator = test::take_shared<Aggregator>(test);
             let wispSUI_treasury_cap = test::take_from_sender<TreasuryCap<WISPSUI>>(test);
 
@@ -85,10 +85,10 @@ module wisp_lsdfi::lsdfi_test {
         next_tx(test, user);
         {   
             let clock = test::take_shared<Clock>(test);
-            let registry = test::take_shared<PoolRegistry>(test);
+            let registry = test::take_shared<LSDFIPoolRegistry>(test);
             let aggregator = test::take_shared<Aggregator>(test);
 
-            let lst_1 = coin::mint_for_testing<LST_1>(1_000_000_000, ctx(test));
+            let lst_1 = coin::mint_for_testing<LST_1>(1_000_000_000_000_000_000, ctx(test));
 
             lsdfi::deposit(&mut registry, &aggregator, lst_1, &clock, ctx(test));
 
@@ -101,16 +101,16 @@ module wisp_lsdfi::lsdfi_test {
         {
             let wispSUI = test::take_from_sender<Coin<WISPSUI>>(test);
 
-            assert_eq(coin::burn_for_testing(wispSUI), 999_100_000);
+            assert_eq(coin::burn_for_testing(wispSUI), 999_100_000_000_000_000);
         };
 
         next_tx(test, user);
         {   
             let clock = test::take_shared<Clock>(test);
-            let registry = test::take_shared<PoolRegistry>(test);
+            let registry = test::take_shared<LSDFIPoolRegistry>(test);
             let aggregator = test::take_shared<Aggregator>(test);
 
-            let lst_2 = coin::mint_for_testing<LST_2>(2_000_000_000, ctx(test));
+            let lst_2 = coin::mint_for_testing<LST_2>(2_000_000_000_000_000_000, ctx(test));
 
             lsdfi::deposit(&mut registry, &aggregator, lst_2, &clock, ctx(test));
 
@@ -123,7 +123,7 @@ module wisp_lsdfi::lsdfi_test {
         {
             let wispSUI = test::take_from_sender<Coin<WISPSUI>>(test);
 
-            assert_eq(coin::burn_for_testing(wispSUI), 2_000_000_000);
+            assert_eq(coin::burn_for_testing(wispSUI), 2_000_000_000_000_000_000);
         };
     }
 
@@ -135,10 +135,10 @@ module wisp_lsdfi::lsdfi_test {
         let (_, _, user) = people();
 
         test_deposit_(test);
-        let wispSUI_mint = 1_500_000_000;
+        let wispSUI_mint = 1_500_000_000_000_000_000;
         next_tx(test, user);
         {
-            let registry = test::take_shared<PoolRegistry>(test);
+            let registry = test::take_shared<LSDFIPoolRegistry>(test);
 
             let wispSUI = coin::mint_for_testing<WISPSUI>(wispSUI_mint, ctx(test));
 
@@ -155,9 +155,9 @@ module wisp_lsdfi::lsdfi_test {
             let lst_1 = test::take_from_sender<Coin<LST_1>>(test);
             let lst_2 = test::take_from_sender<Coin<LST_2>>(test);
 
-            let wispSUI_supply = 999_100_000 + 2_000_000_000;
-            assert_eq(coin::burn_for_testing(lst_1), 1_000_000_000 * wispSUI_mint / wispSUI_supply * (10_000  - 25) / 10_000);
-            assert_eq(coin::burn_for_testing(lst_2), 2_000_000_000 * wispSUI_mint / wispSUI_supply * (10_000  - 25) / 10_000);
+            let wispSUI_supply = 999_100_000_000_000_000 + 2_000_000_00_000_000_000;
+            assert_eq(coin::burn_for_testing(lst_1), 1_000_000_000_000_000_000 * wispSUI_mint / wispSUI_supply * (10_000  - 25) / 10_000);
+            assert_eq(coin::burn_for_testing(lst_2), 2_000_000_000_000_000_000 * wispSUI_mint / wispSUI_supply * (10_000  - 25) / 10_000);
         }
     }
 
@@ -169,10 +169,10 @@ module wisp_lsdfi::lsdfi_test {
         next_tx(test, user);
         {
             let clock = test::take_shared<Clock>(test);
-            let registry = test::take_shared<PoolRegistry>(test);
+            let registry = test::take_shared<LSDFIPoolRegistry>(test);
             let aggregator = test::take_shared<Aggregator>(test);
 
-            let lst_2 = coin::mint_for_testing<LST_2>(1_000_000_000, ctx(test));
+            let lst_2 = coin::mint_for_testing<LST_2>(1_000_000_000_000_000_000, ctx(test));
 
             lsdfi::swap<LST_2, LST_1>(&mut registry, &aggregator, lst_2, &clock, ctx(test));
 
@@ -185,7 +185,7 @@ module wisp_lsdfi::lsdfi_test {
         {
             let lst_1 = test::take_from_sender<Coin<LST_1>>(test);
 
-            assert_eq(coin::burn_for_testing(lst_1), 994_300_000);
+            assert_eq(coin::burn_for_testing(lst_1), 994_300_000_000_000_000);
         }
     }
 
