@@ -3,7 +3,7 @@ module stwisp::stwisp {
     use std::ascii;
     use sui::coin::{Self, Coin, TreasuryCap};
     use sui::transfer;
-    use sui::tx_context::{TxContext};
+    use sui::tx_context::{Self, TxContext};
     use sui::url;
 
     struct STWISP has drop {}
@@ -20,7 +20,7 @@ module stwisp::stwisp {
         );
 
         transfer::public_freeze_object(coin_metadata);
-        transfer::public_share_object(treasury);
+        transfer::public_transfer(treasury, tx_context::sender(ctx));
     }
 
     public entry fun mint_for_testing(treasury: &mut TreasuryCap<STWISP>, amount: u64, recipient: address, ctx: &mut TxContext) {
@@ -33,5 +33,10 @@ module stwisp::stwisp {
 
     public entry fun transfer(c: coin::Coin<STWISP>, recipient: address) {
         transfer::public_transfer(c, recipient)
+    }
+
+    #[test_only]
+    public fun init_for_testing(witness: STWISP, ctx: &mut TxContext) {
+        init(witness, ctx)
     }
 }
