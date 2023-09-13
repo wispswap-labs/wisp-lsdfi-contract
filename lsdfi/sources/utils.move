@@ -15,11 +15,7 @@ module wisp_lsdfi::utils {
 
         let coin = coin::split(&mut merged_coin, amount, ctx);
         // transfer back the remainder if non zero.
-        if (coin::value(&merged_coin) > 0) {
-            transfer::public_transfer(merged_coin, tx_context::sender(ctx));
-        } else {
-            coin::destroy_zero(merged_coin);
-        };
+        transfer_coin<T>(merged_coin, tx_context::sender(ctx));
         coin
     }
 

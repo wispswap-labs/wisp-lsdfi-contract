@@ -3,12 +3,15 @@ module wisp_lsdfi::lsdfi {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::clock::Clock;
+    use sui::sui::SUI;
 
     use wisp_lsdfi::pool::{Self, LSDFIPoolRegistry, WithdrawReceipt};
     use wisp_lsdfi::utils;
     use wisp_lsdfi::wispSUI::{WISPSUI};
     
     use wisp_lsdfi_aggregator::aggregator::{Aggregator};
+
+    use wisp::pool::{PoolRegistry};
 
     public entry fun deposit<T>(
         pool_registry: &mut LSDFIPoolRegistry,
@@ -43,6 +46,42 @@ module wisp_lsdfi::lsdfi {
         deposit<T>(pool_registry, aggregator, lst, clock, ctx);
     }
 
+    public entry fun deposit_SUI(
+        pool_registry: &mut LSDFIPoolRegistry,
+        exchange_pool_registry: &mut PoolRegistry,
+        aggregator: &Aggregator,
+        sui: Coin<SUI>,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let wispSUI = pool::deposit_SUI(pool_registry, exchange_pool_registry, aggregator, sui, clock, ctx);
+        transfer::public_transfer(wispSUI, tx_context::sender(ctx));
+    }
+
+    public fun deposit_SUI_non_entry(
+        pool_registry: &mut LSDFIPoolRegistry,
+        exchange_pool_registry: &mut PoolRegistry,
+        aggregator: &Aggregator,
+        sui: Coin<SUI>,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ): Coin<WISPSUI> {
+        pool::deposit_SUI(pool_registry, exchange_pool_registry, aggregator, sui, clock, ctx)
+    }
+
+    public entry fun deposit_SUI_mul_coin(
+        pool_registry: &mut LSDFIPoolRegistry,
+        exchange_pool_registry: &mut PoolRegistry,
+        aggregator: &Aggregator,
+        suis: vector<Coin<SUI>>,
+        amount: u64,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let sui = utils::extract_coin(suis, amount, ctx);
+        deposit_SUI(pool_registry, exchange_pool_registry, aggregator, sui, clock, ctx);
+    }
+
     public fun withdraw(
         pool_registry: &mut LSDFIPoolRegistry,
         wispSUI: Coin<WISPSUI>,
@@ -67,7 +106,7 @@ module wisp_lsdfi::lsdfi {
         ctx: &mut TxContext
     ) {
         let lst = pool::consume_withdraw_receipt<T>(pool_registry, receipt, ctx);
-        transfer::public_transfer(lst, tx_context::sender(ctx));
+        utils::transfer_coin<T>(lst, tx_context::sender(ctx));
     }
 
     public fun drop_withdraw_receipt(

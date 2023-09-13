@@ -278,6 +278,7 @@ module wisp_lsdfi::pool {
         exchange_pool_registry: &mut PoolRegistry,
         _aggregator : &Aggregator,
         sui: Coin<SUI>, 
+        _clock: &Clock,
         ctx: &mut TxContext
     ): Coin<WISPSUI> {
         let sui_amount = coin::value(&sui);

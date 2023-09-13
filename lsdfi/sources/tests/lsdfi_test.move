@@ -156,8 +156,8 @@ module wisp_lsdfi::lsdfi_test {
             let lst_2 = test::take_from_sender<Coin<LST_2>>(test);
 
             let wispSUI_supply = 999_100_000_000_000_000 + 2_000_000_00_000_000_000;
-            assert_eq(coin::burn_for_testing(lst_1), 1_000_000_000_000_000_000 * wispSUI_mint / wispSUI_supply * (10_000  - 25) / 10_000);
-            assert_eq(coin::burn_for_testing(lst_2), 2_000_000_000_000_000_000 * wispSUI_mint / wispSUI_supply * (10_000  - 25) / 10_000);
+            assert_eq(coin::burn_for_testing(lst_1), (((1_000_000_000_000_000_000 as u128) * (wispSUI_mint as u128) / (wispSUI_supply as u128) * (10_000  - 25) / 10_000) as u64));
+            assert_eq(coin::burn_for_testing(lst_2), (((2_000_000_000_000_000_000 as u128) * (wispSUI_mint as u128) / (wispSUI_supply as u128) * (10_000  - 25) / 10_000) as u64));
         }
     }
 
