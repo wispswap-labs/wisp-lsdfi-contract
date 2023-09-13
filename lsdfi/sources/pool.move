@@ -53,6 +53,15 @@ module wisp_lsdfi::pool {
         withdraw_amounts: Table<TypeName, u64>
     }
 
+    // "Hot potato" object
+    struct DepositSUIReceipt {
+        sui: Coin<SUI>,
+        stake_amounts: Table<TypeName, u64>,
+        total_SUI_deposited: u64,
+        lst_names: vector<TypeName>,
+        lst_amounts: vector<u64>,
+    }
+
     // Events
     struct LSTStatusUpdated has copy, drop {
         lst_name: TypeName,
@@ -79,6 +88,14 @@ module wisp_lsdfi::pool {
 
     struct FeeToUpdated has copy, drop {
         fee_to: address,
+    }
+
+    struct SUIDeposited has copy, drop {
+        sender: address,
+        sui_amount: u64,
+        wispSUI_amount: u64,
+        lst_names: vector<TypeName>,
+        lst_amounts: vector<u64>,
     }
 
     struct Deposited has copy, drop {
@@ -276,11 +293,11 @@ module wisp_lsdfi::pool {
     public (friend) fun deposit_SUI (
         registry: &mut LSDFIPoolRegistry,
         exchange_pool_registry: &mut PoolRegistry,
-        _aggregator : &Aggregator,
+        aggregator : &Aggregator,
         sui: Coin<SUI>, 
-        _clock: &Clock,
+        clock: &Clock,
         ctx: &mut TxContext
-    ): Coin<WISPSUI> {
+    ): DepositSUIReceipt {
         let sui_amount = coin::value(&sui);
         let to_pool_amount = ((sui_amount as u128) * (registry.sui_split_bps as u128) / (utils::basis_points_u128() as u128) as u64);
         let to_pool_SUI = coin::split<SUI>(&mut sui, to_pool_amount, ctx);
@@ -297,9 +314,96 @@ module wisp_lsdfi::pool {
             utils::transfer_coin<WISPSUI>(wisp_SUI, registry.fee_to);
         };
 
-        utils::transfer_coin<SUI>(sui, registry.fee_to); // PLACEHOLDER
+        let total_stake_amount = sui_amount - to_pool_amount;
 
-        let wispSUI = mint_wispSUI(registry, sui_amount, ctx);
+        let target_weights = vector::empty<u256>();
+        let total_target_weights = 0;
+
+        let supported_lsts = vec_set::keys(&registry.supported_lsts);
+        let index = 0;
+        
+        while (index < vector::length(supported_lsts)) {
+            let lst_name = *vector::borrow(supported_lsts, index);
+            let target_weight = get_single_weight_from_aggregator(
+                registry,
+                aggregator,
+                lst_name,
+                clock
+            );
+            vector::push_back(&mut target_weights, target_weight);
+            total_target_weights = total_target_weights + target_weight;
+        };
+
+        index = 0;
+        
+        let deposit_sui_receipt = DepositSUIReceipt {
+            sui: sui,
+            stake_amounts: table::new(ctx),
+            total_SUI_deposited: sui_amount,
+            lst_names: vector::empty<TypeName>(),
+            lst_amounts: vector::empty<u64>(),
+        };
+        let sum = 0;
+
+        while (index < vector::length(supported_lsts) - 1) {
+            let lst_name = *vector::borrow(supported_lsts, index);
+            let target_weight = *vector::borrow(&target_weights, index);
+            let stake_amount = ((total_stake_amount as u128) * (target_weight as u128) / (total_target_weights as u128) as u64);
+            table::add(&mut deposit_sui_receipt.stake_amounts, lst_name, stake_amount);
+            sum = sum + stake_amount;
+            index = index + 1;
+        };
+
+        // Add remaining sui to the last lst
+        let lst_name = *vector::borrow(supported_lsts, index);
+        let stake_amount = total_stake_amount - sum;
+        table::add(&mut deposit_sui_receipt.stake_amounts, lst_name, stake_amount);
+
+        deposit_sui_receipt
+    }
+
+    public fun take_out_SUI_deposit_SUI_receipt<T>(
+        receipt: &mut DepositSUIReceipt,
+        ctx: &mut TxContext
+    ): Coin<SUI> {
+        let lst_name = type_name::get<T>();
+        assert!(table::contains(&receipt.stake_amounts, lst_name), lsdfi_errors::ReceiptTokenEmpty());
+        let stake_amount = *table::borrow(&mut receipt.stake_amounts, lst_name);
+        coin::split<SUI>(&mut receipt.sui, stake_amount, ctx)
+    }
+
+    public fun pay_back_deposit_SUI_receipt<T>(
+        registry: &mut LSDFIPoolRegistry,
+        receipt: &mut DepositSUIReceipt,
+        lst: Coin<T>,
+    ) {
+        let lst_name = type_name::get<T>();
+        assert!(table::contains(&receipt.stake_amounts, lst_name), lsdfi_errors::ReceiptTokenEmpty());
+        table::remove(&mut receipt.stake_amounts, lst_name);
+        vector::push_back(&mut receipt.lst_names, lst_name);
+        vector::push_back(&mut receipt.lst_amounts, coin::value(&lst));
+        put_coin_in(registry, lst);
+    }
+
+    public (friend) fun drop_deposit_SUI_receipt (
+        registry: &mut LSDFIPoolRegistry,
+        receipt: DepositSUIReceipt,
+        ctx: &mut TxContext
+    ): Coin<WISPSUI> {
+        assert!(table::is_empty(&receipt.stake_amounts), lsdfi_errors::ReceiptNotEmpty());
+        let DepositSUIReceipt{sui, stake_amounts, total_SUI_deposited, lst_names, lst_amounts} = receipt;
+        coin::destroy_zero<SUI>(sui);
+        table::drop(stake_amounts);
+        
+        event::emit(SUIDeposited {
+            sender: tx_context::sender(ctx),
+            sui_amount: total_SUI_deposited,
+            wispSUI_amount: total_SUI_deposited,
+            lst_names: lst_names,
+            lst_amounts: lst_amounts
+        });
+
+        let wispSUI = mint_wispSUI(registry, total_SUI_deposited, ctx);
         wispSUI
     }
 

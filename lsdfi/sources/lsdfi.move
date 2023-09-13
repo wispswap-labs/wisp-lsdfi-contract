@@ -5,7 +5,7 @@ module wisp_lsdfi::lsdfi {
     use sui::clock::Clock;
     use sui::sui::SUI;
 
-    use wisp_lsdfi::pool::{Self, LSDFIPoolRegistry, WithdrawReceipt};
+    use wisp_lsdfi::pool::{Self, LSDFIPoolRegistry, WithdrawReceipt, DepositSUIReceipt};
     use wisp_lsdfi::utils;
     use wisp_lsdfi::wispSUI::{WISPSUI};
     
@@ -46,30 +46,18 @@ module wisp_lsdfi::lsdfi {
         deposit<T>(pool_registry, aggregator, lst, clock, ctx);
     }
 
-    public entry fun deposit_SUI(
+    public fun deposit_SUI(
         pool_registry: &mut LSDFIPoolRegistry,
         exchange_pool_registry: &mut PoolRegistry,
         aggregator: &Aggregator,
         sui: Coin<SUI>,
         clock: &Clock,
         ctx: &mut TxContext
-    ) {
-        let wispSUI = pool::deposit_SUI(pool_registry, exchange_pool_registry, aggregator, sui, clock, ctx);
-        transfer::public_transfer(wispSUI, tx_context::sender(ctx));
-    }
-
-    public fun deposit_SUI_non_entry(
-        pool_registry: &mut LSDFIPoolRegistry,
-        exchange_pool_registry: &mut PoolRegistry,
-        aggregator: &Aggregator,
-        sui: Coin<SUI>,
-        clock: &Clock,
-        ctx: &mut TxContext
-    ): Coin<WISPSUI> {
+    ): DepositSUIReceipt {
         pool::deposit_SUI(pool_registry, exchange_pool_registry, aggregator, sui, clock, ctx)
     }
 
-    public entry fun deposit_SUI_mul_coin(
+    public fun deposit_SUI_mul_coin(
         pool_registry: &mut LSDFIPoolRegistry,
         exchange_pool_registry: &mut PoolRegistry,
         aggregator: &Aggregator,
@@ -77,9 +65,26 @@ module wisp_lsdfi::lsdfi {
         amount: u64,
         clock: &Clock,
         ctx: &mut TxContext
-    ) {
+    ): DepositSUIReceipt {
         let sui = utils::extract_coin(suis, amount, ctx);
-        deposit_SUI(pool_registry, exchange_pool_registry, aggregator, sui, clock, ctx);
+        deposit_SUI(pool_registry, exchange_pool_registry, aggregator, sui, clock, ctx)
+    }
+
+    public fun drop_deposit_SUI_receipt(
+        registry: &mut LSDFIPoolRegistry,
+        receipt: DepositSUIReceipt,
+        ctx: &mut TxContext
+    ) {
+        let wispSUI = pool::drop_deposit_SUI_receipt(registry, receipt, ctx);
+        transfer::public_transfer(wispSUI, tx_context::sender(ctx));
+    }
+
+    public fun drop_deposit_SUI_receipt_non_entry(
+        registry: &mut LSDFIPoolRegistry,
+        receipt: DepositSUIReceipt,
+        ctx: &mut TxContext
+    ): Coin<WISPSUI> {
+        pool::drop_deposit_SUI_receipt(registry, receipt, ctx)
     }
 
     public fun withdraw(
