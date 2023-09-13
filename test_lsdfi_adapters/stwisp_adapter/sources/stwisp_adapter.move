@@ -7,8 +7,11 @@ module stwisp_adapter::stwisp_adapter {
 
     use stwisp::stwisp::{Self, STWISP};
     use stwisp::stwisp_protocol::{Self, StWISPProtocol};
+
     use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
     use wisp_lsdfi_aggregator::access_control::OperatorCap;
+
+    use wisp_lsdfi::pool::{Self, LSDFIPoolRegistry, DepositSUIReceipt};
 
     public fun set_stwisp_result(
         operator_cap: &OperatorCap,
@@ -21,14 +24,15 @@ module stwisp_adapter::stwisp_adapter {
     }
 
     public fun stake(
-        treasury: &mut TreasuryCap<STWISP>,
-        sui: Coin<SUI>,
+        registry: &mut LSDFIPoolRegistry,
+        protocol: &mut StWISPProtocol,
+        receipt: &mut DepositSUIReceipt,
         ctx: &mut TxContext
-    ): Coin<STWISP> {
-        let sui_amount = coin::value(&sui);
-        transfer::public_transfer(sui, @0x0); // Delete SUI
-        let stwisp = stwisp::mint_for_testing_non_entry(treasury, sui_amount, ctx);
-        stwisp
+    ) {
+        let sui = pool::take_out_SUI_deposit_SUI_receipt<STWISP>(receipt, ctx);
+        let stsui = stwisp_protocol::request_stake_non_entry(protocol, sui, ctx);
+
+        pool::pay_back_deposit_SUI_receipt<STWISP>(registry, receipt, stsui);
     }
 }
 
@@ -49,14 +53,13 @@ module stwisp_adapter::stwisp_adapter_test {
     #[test]
     fun test_set_result() {
         let test = scenario();
+        aggregator_test::test_init_package_(&mut test);
         test_set_result_(&mut test);
         test::end(test);
     }
 
     fun test_set_result_(test: &mut Scenario) {
         let (owner, operator, _) = people();
-        
-        aggregator_test::test_init_package_(test);
 
         next_tx(test, owner);
         {
