@@ -500,11 +500,11 @@ module wisp_lsdfi::pool {
         out_amount: u64,
         clock: &Clock
     ): u128 {
-        let optimal_weights = vector::empty<u256>();
+        let target_weights = vector::empty<u256>();
         let cur_weights = vector::empty<u256>();
         let pos_weights = vector::empty<u256>();
 
-        let total_optimal_weights = 0;
+        let total_target_weights = 0;
         let total_cur_weights = 0;
         let total_pos_weights = 0;
 
@@ -513,14 +513,14 @@ module wisp_lsdfi::pool {
 
         while (index < vector::length(supported_lsts)) {
             let lst_name = *vector::borrow(supported_lsts, index);
-            let optimal_weight = get_single_weight_from_aggregator(
+            let target_weight = get_single_weight_from_aggregator(
                 registry,
                 aggregator,
                 lst_name,
                 clock
             );
-            vector::push_back(&mut optimal_weights, optimal_weight);
-            total_optimal_weights = total_optimal_weights + optimal_weight;
+            vector::push_back(&mut target_weights, target_weight);
+            total_target_weights = total_target_weights + target_weight;
 
             let cur_weight = (*table::borrow(&registry.available_balances, lst_name) as u256);
             vector::push_back(&mut cur_weights, cur_weight);
@@ -540,12 +540,12 @@ module wisp_lsdfi::pool {
             index = index + 1;
         };
 
-        let normalized_optimal_weights = math::normalize_weight(&optimal_weights, total_optimal_weights);
+        let normalized_target_weights = math::normalize_weight(&target_weights, total_target_weights);
         let normalized_cur_weights = math::normalize_weight(&cur_weights, total_cur_weights);
         let normalized_pos_weights = math::normalize_weight(&pos_weights, total_pos_weights);
 
-        let cur_diff = math::cal_diff(&normalized_optimal_weights, &normalized_cur_weights);
-        let pos_diff = math::cal_diff(&normalized_optimal_weights, &normalized_pos_weights);
+        let cur_diff = math::cal_diff(&normalized_target_weights, &normalized_cur_weights);
+        let pos_diff = math::cal_diff(&normalized_target_weights, &normalized_pos_weights);
 
         cal_dynamic_fee_from_diffs(registry, cur_diff, pos_diff)
     }
