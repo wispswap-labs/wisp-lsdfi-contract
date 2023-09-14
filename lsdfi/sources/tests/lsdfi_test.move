@@ -60,15 +60,38 @@ module wisp_lsdfi::lsdfi_test {
         test::end(test);
     }
 
-    fun test_init_package_(test: &mut Scenario) {
+    public fun test_init_package_(test: &mut Scenario) {
         let (owner, _, _) = people();
 
         aggregator_test::test_set_result_(test);
+        pool_tests::test_init_package_(test);
 
         next_tx(test, owner);
         {
             pool::init_for_testing(ctx(test));
             wispSUI::init_for_testing(create_one_time_witness<WISPSUI>(), ctx(test));
+        };
+
+        next_tx(test, owner);
+        {
+            let registry = test::take_shared<PoolRegistry>(test);
+            let sui = coin::mint_for_testing<SUI>(1_000_000_000_000_000_000, ctx(test));
+            let wispSUI = coin::mint_for_testing<WISPSUI>(1_000_000_000_000_000_000, ctx(test));
+
+            let lp = wisp_pool::create_pool(
+                &mut registry,
+                &mut sui,
+                &mut wispSUI,
+                1_000_000_000_000_000_000,
+                1_000_000_000_000_000_000,
+                ctx(test)
+            );
+
+            coin::burn_for_testing(sui);
+            coin::burn_for_testing(wispSUI);
+            coin::burn_for_testing(lp);
+
+            test::return_shared(registry);
         };
 
         next_tx(test, owner);
@@ -142,29 +165,6 @@ module wisp_lsdfi::lsdfi_test {
         let (_, _, user) = people();
 
         test_deposit_(test);
-        pool_tests::test_init_package_(test);
-
-        next_tx(test, user);
-        {
-            let registry = test::take_shared<PoolRegistry>(test);
-            let sui = coin::mint_for_testing<SUI>(1_000_000_000_000_000_000, ctx(test));
-            let wispSUI = coin::mint_for_testing<WISPSUI>(1_000_000_000_000_000_000, ctx(test));
-
-            let lp = wisp_pool::create_pool(
-                &mut registry,
-                &mut sui,
-                &mut wispSUI,
-                1_000_000_000_000_000_000,
-                1_000_000_000_000_000_000,
-                ctx(test)
-            );
-
-            coin::burn_for_testing(sui);
-            coin::burn_for_testing(wispSUI);
-            coin::burn_for_testing(lp);
-
-            test::return_shared(registry);
-        };
 
         next_tx(test, user);
         {

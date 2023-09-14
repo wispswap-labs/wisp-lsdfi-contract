@@ -117,12 +117,11 @@ module stsui::stsui_test {
             let protocol = test::take_shared<StSUIProtocol>(test);
 
             stsui_protocol::initialize(&mut protocol, stsui_treasury);
-
             test::return_shared(protocol);
         };
     }
 
-    fun test_stake_(test: &mut Scenario) {
+    public fun test_stake_(test: &mut Scenario) {
         let (_, user, _) = people();
 
         test_init_package_(test);

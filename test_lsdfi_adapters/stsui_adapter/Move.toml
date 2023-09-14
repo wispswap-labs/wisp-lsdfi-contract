@@ -7,6 +7,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir="crates/sui-framew
 WispLSDFi = { local = "../../lsdfi" }
 WispLSDFIAggregator = { local = "../../aggregator"}
 StSUI = { local = "../../test_lst_tokens/stsui" }
+WispExchange = { local = "../../../wispswap-smart-contracts/exchange" } 
 
 [addresses]
 stsui_adapter =  "0x0"
