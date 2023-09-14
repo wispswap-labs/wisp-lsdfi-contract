@@ -1,0 +1,15 @@
+[package]
+name = "haedal_adapter"
+version = "0.0.1"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir="crates/sui-framework/packages/sui-framework/", rev = "testnet" }
+SuiSystem = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-system", rev = "testnet" }
+WispLSDFi = { local = "../../lsdfi" }
+WispLSDFIAggregator = { local = "../../aggregator"}
+haedal = { local = "../../protocols/haedal-interface" }
+
+[addresses]
+haedal_adapter =  "0x0"
+sui = "0x2"
+
