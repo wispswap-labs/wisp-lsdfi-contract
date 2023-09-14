@@ -13,7 +13,7 @@ module stwisp_adapter::stwisp_adapter {
 
     use wisp_lsdfi::pool::{Self, LSDFIPoolRegistry, DepositSUIReceipt};
 
-    public fun set_stwisp_result(
+    public entry fun set_stwisp_result(
         operator_cap: &OperatorCap,
         aggregator: &mut Aggregator,
         stwisp_protocol: &StWISPProtocol,

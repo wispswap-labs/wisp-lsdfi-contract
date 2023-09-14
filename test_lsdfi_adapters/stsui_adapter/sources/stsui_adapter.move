@@ -13,7 +13,7 @@ module stsui_adapter::stsui_adapter {
 
     use wisp_lsdfi::pool::{Self, LSDFIPoolRegistry, DepositSUIReceipt};
 
-    public fun set_stsui_result(
+    public entry fun set_stsui_result(
         operator_cap: &OperatorCap,
         aggregator: &mut Aggregator,
         stsui_protocol: &StSUIProtocol,
