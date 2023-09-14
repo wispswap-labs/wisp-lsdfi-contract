@@ -1,6 +1,7 @@
 #[test_only]
 #[allow(unused_use, unused_function, unused_variable)]
 module wisp_lsdfi::lsdfi_test {
+    use sui::sui::{SUI};
     use sui::test_scenario::{Self as test, Scenario, ctx, next_tx};
     use sui::transfer;
     use sui::vec_set;
@@ -17,6 +18,9 @@ module wisp_lsdfi::lsdfi_test {
     use wisp_lsdfi::lsdfi;
     use wisp_lsdfi::wispSUI::{Self, WISPSUI};
 
+    use wisp::pool::{Self as wisp_pool, PoolRegistry};
+    use wisp::pool_tests;
+
     const SLOPE: u64 = 10_000;
     const RISK_WEIGHT: u64 = 10_000;
     const RISK_COFFICIENT: u64 = 10_000;
@@ -32,6 +36,13 @@ module wisp_lsdfi::lsdfi_test {
     fun test_deposit() {
         let test = scenario();
         test_deposit_(&mut test);
+        test::end(test);
+    }
+
+    #[test]
+    fun test_deposit_SUI() {
+        let test = scenario();
+        test_deposit_SUI_(&mut test);
         test::end(test);
     }
 
@@ -127,8 +138,65 @@ module wisp_lsdfi::lsdfi_test {
         };
     }
 
-    fun test_deposit_bad_weights_(test: &mut Scenario) {
+    fun test_deposit_SUI_(test: &mut Scenario) {
+        let (_, _, user) = people();
 
+        test_deposit_(test);
+        pool_tests::test_init_package_(test);
+
+        next_tx(test, user);
+        {
+            let registry = test::take_shared<PoolRegistry>(test);
+            let sui = coin::mint_for_testing<SUI>(1_000_000_000_000_000_000, ctx(test));
+            let wispSUI = coin::mint_for_testing<WISPSUI>(1_000_000_000_000_000_000, ctx(test));
+
+            let lp = wisp_pool::create_pool(
+                &mut registry,
+                &mut sui,
+                &mut wispSUI,
+                1_000_000_000_000_000_000,
+                1_000_000_000_000_000_000,
+                ctx(test)
+            );
+
+            coin::burn_for_testing(sui);
+            coin::burn_for_testing(wispSUI);
+            coin::burn_for_testing(lp);
+
+            test::return_shared(registry);
+        };
+
+        next_tx(test, user);
+        {
+            let registry = test::take_shared<LSDFIPoolRegistry>(test);
+            let wisp_registry = test::take_shared<PoolRegistry>(test);
+            let aggregator = test::take_shared<Aggregator>(test);
+            let clock = test::take_shared<Clock>(test);
+
+            let sui = coin::mint_for_testing<SUI>(1_000_000_000_000_000_000, ctx(test));
+
+            let deposit_receipt = lsdfi::deposit_SUI(&mut registry, &mut wisp_registry, &aggregator, sui, &clock, ctx(test));
+            
+            let sui_lst_1 = pool::take_out_SUI_deposit_SUI_receipt<LST_1>(&mut deposit_receipt, ctx(test));
+            let sui_lst_1_amount = coin::burn_for_testing(sui_lst_1);
+
+            let lst_1 = coin::mint_for_testing<LST_1>(sui_lst_1_amount, ctx(test));
+            pool::pay_back_deposit_SUI_receipt(&mut registry, &mut deposit_receipt, lst_1);
+
+            let sui_lst_2 = pool::take_out_SUI_deposit_SUI_receipt<LST_2>(&mut deposit_receipt, ctx(test));
+            let sui_lst_2_amount = coin::burn_for_testing(sui_lst_2);
+
+            let lst_2 = coin::mint_for_testing<LST_2>(sui_lst_2_amount, ctx(test));
+            pool::pay_back_deposit_SUI_receipt(&mut registry, &mut deposit_receipt, lst_2);
+
+            let wispSUI = lsdfi::drop_deposit_SUI_receipt_non_entry(&mut registry, deposit_receipt, ctx(test));
+            coin::burn_for_testing(wispSUI);
+
+            test::return_shared(registry);
+            test::return_shared(wisp_registry);
+            test::return_shared(aggregator);
+            test::return_shared(clock);
+        }
     }
 
     fun test_withdraw_(test: &mut Scenario) {

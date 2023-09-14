@@ -332,6 +332,7 @@ module wisp_lsdfi::pool {
             );
             vector::push_back(&mut target_weights, target_weight);
             total_target_weights = total_target_weights + target_weight;
+            index = index + 1;
         };
 
         index = 0;
@@ -353,7 +354,6 @@ module wisp_lsdfi::pool {
             sum = sum + stake_amount;
             index = index + 1;
         };
-
         // Add remaining sui to the last lst
         let lst_name = *vector::borrow(supported_lsts, index);
         let stake_amount = total_stake_amount - sum;
