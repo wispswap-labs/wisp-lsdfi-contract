@@ -3,7 +3,7 @@ module haedal_adapter::haedal_adapter {
     use sui::tx_context::{TxContext};
     use sui_system::sui_system::{SuiSystemState};
     
-    use haedal::staking::{Staking};
+    use haedal::staking::{Self, Staking};
     use haedal::hasui::HASUI;
 
     use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
