@@ -625,18 +625,20 @@ module wisp_lsdfi::pool {
             );
             vector::push_back(&mut target_weights, target_weight);
             total_target_weights = total_target_weights + target_weight;
+            
+            let risk_coefficient = (*table::borrow(&registry.risk_coefficients, lst_name) as u256);
 
-            let cur_weight = (*table::borrow(&registry.available_balances, lst_name) as u256);
+            let cur_weight = (*table::borrow(&registry.available_balances, lst_name) as u256) * risk_coefficient;
             vector::push_back(&mut cur_weights, cur_weight);
             total_cur_weights = total_cur_weights + cur_weight;
 
             let pos_weight: u256;
             if (lst_name == in_name) {
-                pos_weight = (*table::borrow(&registry.available_balances, lst_name) + in_amount as u256);
+                pos_weight = (*table::borrow(&registry.available_balances, lst_name) + in_amount as u256) * risk_coefficient;
             } else if (lst_name == out_name) {
-                pos_weight = (*table::borrow(&registry.available_balances, lst_name) - out_amount as u256);
+                pos_weight = (*table::borrow(&registry.available_balances, lst_name) - out_amount as u256) * risk_coefficient;
             } else {
-                pos_weight = (*table::borrow(&registry.available_balances, lst_name) as u256);
+                pos_weight = (*table::borrow(&registry.available_balances, lst_name) as u256) * risk_coefficient;
             };
             vector::push_back(&mut pos_weights, pos_weight);
             total_pos_weights = total_pos_weights + pos_weight;
