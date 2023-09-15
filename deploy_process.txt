@@ -1,0 +1,16 @@
+deploy stsui & stwisp 
+initialize stsui & stwisp protocol
+set fake stake_balance: stsui & stwisp protocol
+
+deploy aggregator
+set support lst: stsui & stwisp
+
+deploy lsdfi
+initialize lsdfi
+setsupport lst: stsui & stwisp
+
+deploy adapter stsui & stwisp
+set result adapter stsui & stwisp
+
+deposit on lsdfi
+create_pool on exchange

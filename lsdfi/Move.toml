@@ -1,6 +1,7 @@
 [package]
 name = "WispLSDFi"
 version = "1.0.0"
+published-at = "0x3c57f671f3d4cbdae9ca433636a6b24628469322b931f7c89fc03c1f4984e64b"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir="crates/sui-framework/packages/sui-framework/", rev = "testnet" }
@@ -8,5 +9,5 @@ WispLSDFIAggregator = { local = "../aggregator"}
 WispExchange = { local = "../../wispswap-smart-contracts/exchange" } 
 
 [addresses]
-wisp_lsdfi = "0x0"
+wisp_lsdfi = "0x3c57f671f3d4cbdae9ca433636a6b24628469322b931f7c89fc03c1f4984e64b"
 sui = "0x2"
