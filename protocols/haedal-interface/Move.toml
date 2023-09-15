@@ -8,7 +8,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 SuiSystem = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-system", rev = "testnet" }
 
 [addresses]
-haedal = "0xdc0ad9144e2854eb8ef5d6011e75b71c796c1973c0a3d3edbb7465a0ebf53598"
+haedal = "0xac2afb455cbcdc2ff1a2e9bbb8aa4ccb4506a544b08c740886892a5cdf92f472"
 sui = "0x2"
 sui_system = "0x3"
 
