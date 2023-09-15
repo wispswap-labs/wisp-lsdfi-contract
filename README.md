@@ -10,9 +10,16 @@ Current deployed package/objects:
 
 ### Testnet
 
--   Package address:
--   AdminCap object:
--   LSDFiPoolRegistry object:
+#### LSDFi
+
+-   Package address: 0x3c57f671f3d4cbdae9ca433636a6b24628469322b931f7c89fc03c1f4984e64b
+-   AdminCap object: 0x3000f0b0d393825e2398ca9208e3988ce764c5a0082d51047ce4eecdcf376ad0
+-   LSDFiPoolRegistry object: 0x8b0ebf9e5fab704e5829cb83dfa584542135d98f920560d4a0d7ad30d2f5ed4a
+
+#### Aggregator
+
+-   Package address: 0xcbb27865df487acdffb16f770409aa83d97e8189f5855e29247cc4d574a201e6
+-   Aggregator: 0x38367d79002f528fea9d79e5978621328bd7b04df2c2a9f86a2b9d15495ccc8b
 
 ## Structure
 
