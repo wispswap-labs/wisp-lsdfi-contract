@@ -2,7 +2,7 @@
 
 ## Contract
 
-Current deployed package/objects:
+Current deployed packages/objects:
 
 ### Mainnet
 
@@ -10,51 +10,59 @@ Current deployed package/objects:
 
 ### Testnet
 
--   Package address:
--   AdminCap object:
--   LSDFiPoolRegistry object:
+#### LSDFi
+
+-   Package address: 0x3c57f671f3d4cbdae9ca433636a6b24628469322b931f7c89fc03c1f4984e64b
+-   AdminCap object: 0x3000f0b0d393825e2398ca9208e3988ce764c5a0082d51047ce4eecdcf376ad0
+-   LSDFiPoolRegistry object: 0x8b0ebf9e5fab704e5829cb83dfa584542135d98f920560d4a0d7ad30d2f5ed4a
+
+#### Aggregator
+
+-   Package address: 0xcbb27865df487acdffb16f770409aa83d97e8189f5855e29247cc4d574a201e6
+-   Aggregator: 0x38367d79002f528fea9d79e5978621328bd7b04df2c2a9f86a2b9d15495ccc8b
 
 ## Structure
 
-Wisp LSDFi Smart Contracts consists of 6 sub-module
+Wisp LSDFi Smart Contracts consists of 6 sub-modules
 
 -   `pool`: implementation of core logic for Staking Liquidity Token pool and vdAMM
 -   `wispSUI`: wispSUI token represent share of Staking Liquidity Token pool
 -   `lsdfi`: wrapper module for pool's functions
 -   `errors`: errors code
 -   `utils`: utility functions and consts
--   `math`: function for calculating
+-   `math`: functions for calculation
 
-## Object
+## Objects
 
 ### AdminCap
 
-Object represent ownership of this package. Required to perform some permissioned actions.
+This object represents ownership of this package. The object is required to perform certain permission assignments.
 
 ### PoolRegistry
 
-Main storage object for storing coins in pool and also other config parameters. Fields:
+This is the main storage object to store coins in pool and configure parameters. Fields:
 
 -   `balances`: store all coins' balances in pool
--   `supported_lsts`: list of supported liquidity token in protocol
--   `available_balances`: mapping from TypeName to available balances of coins in pool. Use to query balances without a type argument
--   `max_diff_weights`: maximum weight differrent for each lst for every action can not make weights fluctuate over this rate
--   `risk_coefficients`: risk parameters for each lst, use to calculate weight of lst in the pool
--   `wispSUI_treasury`: treasury object of wispSUI, use to mint/burn wispSUI for lst provider
--   `acceptable_result_time`: maximum time for a result in aggregator be valid. if aggregator's result is too old (greater than this value since last time updated until now), action won't be execute
--   `slope`: dynamic fee calculate factor
--   `base_fee`: base fee for swapping lst in pool
--   `redemption_fee`: fix fee for withdraw lst
--   `sui_split_bps`: percent of sui to split and add to wispSUI/SUI AMM pool in basis points
+-   `supported_lsts`: list of supported Liquid Staking Tokens in wispSUI protocol
+-   `available_balances`: mapping from TypeName to available balances of coins in pool, used to query balances without a type argument
+-   `max_diff_weights`: maximum weight differrence for each LST for every action. Each action can not move basket weights over these values.
+-   `risk_coefficients`: risk parameters for each LST, used to calculate weight of LST in the pool
+-   `wispSUI_treasury`: treasury object for wispSUI, use to store circulating wispSUI.
+-   `acceptable_result_time`: max threshold time for updated time of aggregator data. If aggregator's updated time is greater than this value, the actions won't be able to be executed
+-   `slope`: dynamic fee curve parameter
+-   `base_fee`: base fee for LSTs swapping
+-   `redemption_fee`: fixed fee for LSTs redemption
+-   `sui_split_bps`: percentage of Sui to split and add to wispSUI/SUI AMM pool in basis points
 -   `fee_to`: protocol fee receiver address
--   `is_sui_smaller_than_wispSUI`: pre-calculate value for adding SUI into pool, to reduce gas fee
+-   `is_sui_smaller_than_wispSUI`: pre-calculated value for adding SUI into pool, to reduce gas fee
 
 ### WithdrawReceipt
 
-"Hot potato" object represent of withdraw output, it has no traits so can not be transfer or store somewhere. Since withdraw action return coin in all type of supported lsts, we use it as a way to withdraw multiple type of coins dynamically.\
-We take advantage of Programmable Transaction to consume this WithdrawReceipt object to get out coins after receiving it and drop it when all coins are withdrawn. Field:
+The "Hot potato" object represents the withdrawal output; it has no traits, so it cannot be transferred or stored elsewhere. Since withdrawal actions return coins in all types of supported LSTs, the WispSwap team uses this object type as a way to handle the withdrawals of multiple types of coins dynamically.
+We take advantage of Programmable Transactions to consume this WithdrawReceipt object to retrieve coins after receiving them and drop it when all coins have been withdrawn.
+Field:
 
--   `withdraw_amounts`: Mapping of coins' typenames to amount to withdraw
+-   `withdraw_amounts`: Mapping of coins' typenames to the amount to withdraw
 
 ## Public Interface
 
@@ -74,16 +82,16 @@ We take advantage of Programmable Transaction to consume this WithdrawReceipt ob
 
 Type parameters:
 
--   `T`: LST to deposit into pool
+-   `T`: LST to deposit into the pool
 
 Parameters:
 
--   `pool_registry`: mutable reference of LSDFIPoolRegistry object
--   `aggregator`: reference of Aggregator object in WispLSDFIAggregator package
+-   `pool_registry`: mutable reference to the LSDFIPoolRegistry object
+-   `aggregator`: reference to the Aggregator object in the WispLSDFIAggregator package
 -   `lst`: LST coin of type T
--   `clock`: reference of Clock object (address: `0x6`)
+-   `clock`: reference to the Clock object (address: `0x6``)
 
-Use: Put `lst` into pool and transfer back to sender corresponding amount of wispSUI
+Use: Put `lst` into the pool and transfer back to the sender corresponding amount of wispSUI
 
 ```rust
     public fun deposit_non_entry<T>(
@@ -95,7 +103,7 @@ Use: Put `lst` into pool and transfer back to sender corresponding amount of wis
     ): Coin<WISPSUI>
 ```
 
-Same as `deposit` but return Coin of wispSUI type for further action instead of transfer to sender
+Same as `deposit` but returns a Coin of wispSUI type for further actions instead of transferring it to the sender.
 
 ```rust
     public entry fun deposit_mul_coin<T>(
@@ -108,10 +116,10 @@ Same as `deposit` but return Coin of wispSUI type for further action instead of 
     )
 ```
 
-Same as `deposit` but use multiple Coin, leftovers will be transfer back to sender
+Same as `deposit` but uses multiple Coins; leftovers will be transferred back to the sender.
 
--   `lsts`: vector of coins of type T
--   `amount`: amount to add into pool
+-   `lsts`: a vector of coins of type T
+-   `amount`: the amount to add to the pool
 
 ### Deposit SUI
 
@@ -134,13 +142,13 @@ Type parameters:
 
 Parameters:
 
--   `pool_registry`: mutable reference of LSDFIPoolRegistry object
--   `exchange_pool_registry`: mutable reference of PoolRegistry object of WispSwap AMM contract
--   `aggregator`: reference of Aggregator object in WispLSDFIAggregator package
+-   `pool_registry`: mutable reference to the LSDFIPoolRegistry object
+-   `exchange_pool_registry`: mutable reference to the PoolRegistry object of WispSwap AMM contract
+-   `aggregator`: reference to the Aggregator object in the WispLSDFIAggregator package
 -   `lst`: LST coin of type T
--   `clock`: reference of Clock object (address: `0x6`)
+-   `clock`: reference to Clock object (address: `0x6`)
 
-Use: Put `sui` into pool and transfer back to sender corresponding amount of wispSUI
+Use: Put `sui` into pool and transfer back to the sender the corresponding amount of wispSUI
 
 ```rust
     public fun deposit_SUI_non_entry(
@@ -153,7 +161,7 @@ Use: Put `sui` into pool and transfer back to sender corresponding amount of wis
     ): Coin<WISPSUI>
 ```
 
-Same as `deposit_SUI` but return Coin of wispSUI type for further action instead of transfer to sender
+Same as `deposit_SUI` but return a Coin of wispSUI type for further actions instead of transferring it back to sender
 
 ```rust
     public entry fun deposit_SUI_mul_coin(
@@ -167,7 +175,7 @@ Same as `deposit_SUI` but return Coin of wispSUI type for further action instead
     )
 ```
 
-Same as `deposit_SUI_mul_coin` but use multiple Coin, leftovers will be transfer back to sender
+Same as `deposit_SUI_mul_coin` but use multiple Coin objects, leftovers will be transferred back to sender
 
 -   `suis`: vector of SUI coins
 -   `amount`: amount to add into pool
@@ -186,11 +194,11 @@ Same as `deposit_SUI_mul_coin` but use multiple Coin, leftovers will be transfer
 
 Parameters:
 
--   `pool_registry`: mutable reference of LSDFIPoolRegistry object
--   `wispSUI`: wispSUI coin to burn to withdraw LSTs
--   `ctx`: mutable reference of TxContext
+-   `pool_registry`: mutable reference to the LSDFIPoolRegistry object
+-   `wispSUI`: wispSUI coin which will be burnt to withdraw LSTs
+-   `ctx`: mutable reference to the TxContext
 
-Use: Burn `wispSUI` to get WithdrawReceipt object
+Use: Burn `wispSUI` to obtain WithdrawReceipt objects
 
 ```rust
     public fun withdraw_mul_coin(
@@ -204,7 +212,7 @@ Use: Burn `wispSUI` to get WithdrawReceipt object
     }
 ```
 
-Same as `withdraw` but use multiple Coin, leftovers will be transfer back to sender
+Same as `withdraw` but use multiple Coins, leftovers will be transferred back to sender
 
 ```rust
     public fun consume_withdraw_receipt<T>(
@@ -216,13 +224,13 @@ Same as `withdraw` but use multiple Coin, leftovers will be transfer back to sen
 
 Type parameters:
 
--   `T`: LST to withdraw from pool
+-   `T`: LST to withdraw from the pool
 
 Parameters:
 
--   `pool_registry`: mutable reference of LSDFIPoolRegistry object
--   `receipt`:mutable reference of WithdrawReceipt object returned by withdraw function
--   `ctx`: mutable reference of TxContext
+-   `pool_registry`: mutable reference to LSDFIPoolRegistry object
+-   `receipt`:mutable reference to WithdrawReceipt object returned by withdraw function
+-   `ctx`: mutable reference to TxContext
 
 Use: Take out LST coin from the pool and mark this type in `receipt` as withdrawn
 
@@ -255,17 +263,17 @@ Use: Drop WithdrawReceipt object after withdraw all returned coins
 Type parameters:
 
 -   `I`: LST to put into pool
--   `O`: LST to to get back
+-   `O`: LST to get back
 
 Parameters:
 
--   `pool_registry`: mutable reference of LSDFIPoolRegistry object
--   `aggregator`: reference of Aggregator object in WispLSDFIAggregator package
+-   `pool_registry`: mutable reference to LSDFIPoolRegistry object
+-   `aggregator`: reference to Aggregator object in WispLSDFIAggregator package
 -   `in_coin`: LST coin of type I
--   `clock`: reference of Clock object (address: `0x6`)
--   `ctx`: mutable reference of TxContext
+-   `clock`: reference to Clock object (address: `0x6`)
+-   `ctx`: mutable reference to TxContext
 
-Use: Swap `in_coin` to desire lst coin type. Returned coin will be transfered to sender
+Use: Swap `in_coin` to the desired LST coin type. Returned coin will be transfered to sender
 
 ```rust
     public fun swap_non_entry<I, O>(
@@ -277,7 +285,7 @@ Use: Swap `in_coin` to desire lst coin type. Returned coin will be transfered to
     ): Coin<O>
 ```
 
-Same as `swap` but return Coin of O type for further action instead of transfer to sender
+Same as `swap` but return a Coin of O type for further action instead of transferring to sender
 
 ```rust
     public entry fun swap_mul_coin<I, O>(
@@ -290,7 +298,7 @@ Same as `swap` but return Coin of O type for further action instead of transfer 
     )
 ```
 
-Same as `swap` but use multiple Coin, leftovers will be transfer back to sender
+Same as `swap` but use multiple Coins, leftovers will be transferred back to sender
 
 ### View functions
 
