@@ -31,7 +31,7 @@ module stwisp_adapter::stwisp_adapter {
         transfer::share_object(adapter)
     }
 
-    fun initialize(
+    public entry fun initialize(
         admin_cap: &AdminCap,
         adapter: &mut StWispAdapter,
         ctx: &mut TxContext

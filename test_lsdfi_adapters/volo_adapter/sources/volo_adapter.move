@@ -1,4 +1,4 @@
-module haedal_adapter::haedal_adapter {
+module volo_adapter::volo_adapter {
     use sui::clock::Clock;
     use sui::object::{Self, UID};
     use sui::tx_context::{TxContext};
@@ -6,8 +6,8 @@ module haedal_adapter::haedal_adapter {
     use std::option::{Self, Option};
     use sui_system::sui_system::{SuiSystemState};
     
-    use haedal::staking::{Self, Staking};
-    use haedal::hasui::HASUI;
+    use volo::native_pool::{Self, NativePool};
+    use volo::cert::{CERT, Metadata};
 
     use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
     use wisp_lsdfi_aggregator::access_control::OperatorCap;
@@ -17,13 +17,13 @@ module haedal_adapter::haedal_adapter {
     const EInitialized: u64 = 0;
     const ENotInitialized: u64 = 1;
 
-    struct HeadalAdapter has key {
+    struct VoloAdapter has key {
         id: UID,
         adapter_cap: Option<AdapterCap>
     }
 
     fun init (ctx: &mut TxContext) {
-        let adapter = HeadalAdapter {
+        let adapter = VoloAdapter {
             id: object::new(ctx),
             adapter_cap: option::none()
         };
@@ -33,7 +33,7 @@ module haedal_adapter::haedal_adapter {
 
     public entry fun initialize(
         admin_cap: &AdminCap,
-        adapter: &mut HeadalAdapter,
+        adapter: &mut VoloAdapter,
         ctx: &mut TxContext
     ) {
         assert!(option::is_some(&adapter.adapter_cap), EInitialized);
@@ -41,29 +41,31 @@ module haedal_adapter::haedal_adapter {
         option::fill(&mut adapter.adapter_cap, adapter_cap);
     }
 
-    public entry fun set_haedal_result(
+    public entry fun set_volo_result(
         operator_cap: &OperatorCap,
         aggregator: &mut Aggregator,
-        haedal_staking: &Staking,
+        volo_native_pool: &mut NativePool,
         clock: &Clock,
+        ctx: &mut TxContext
     ) {
-        let result = staking::get_total_sui(haedal_staking);
-        aggregator::set_result<HASUI>(operator_cap, aggregator, result, clock);
+        let result = native_pool::get_total_active_stake(volo_native_pool, ctx);
+        aggregator::set_result<CERT>(operator_cap, aggregator, result, clock);
     }
 
     public fun stake(
-        adapter: &HeadalAdapter,
+        adapter: &VoloAdapter,
         wrapper: &mut SuiSystemState,
         registry: &mut LSDFIPoolRegistry,
-        haedal_staking: &mut Staking,
+        volo_native_pool: &mut NativePool,
+        volo_metadata: &mut Metadata<CERT>,
         validator: address,
         receipt: &mut DepositSUIReceipt,
         ctx: &mut TxContext
     ) {
         assert!(option::is_some(&adapter.adapter_cap), ENotInitialized);
-        let sui = pool::take_out_SUI_deposit_SUI_receipt<HASUI>(option::borrow(&adapter.adapter_cap), receipt, ctx);
-        let haedal = staking::request_stake_coin(wrapper, haedal_staking, sui, validator, ctx);
+        let sui = pool::take_out_SUI_deposit_SUI_receipt<CERT>(option::borrow(&adapter.adapter_cap), receipt, ctx);
+        let volo = native_pool::stake_non_entry(volo_native_pool, volo_metadata, wrapper, sui, ctx);
 
-        pool::pay_back_deposit_SUI_receipt<HASUI>(option::borrow(&adapter.adapter_cap), registry, receipt, haedal);
+        pool::pay_back_deposit_SUI_receipt<CERT>(option::borrow(&adapter.adapter_cap), registry, receipt, volo);
     }
 }

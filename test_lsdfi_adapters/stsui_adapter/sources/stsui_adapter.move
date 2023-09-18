@@ -31,7 +31,7 @@ module stsui_adapter::stsui_adapter {
         transfer::share_object(adapter)
     }
 
-    fun initialize(
+    public entry fun initialize(
         admin_cap: &AdminCap,
         adapter: &mut StSuiAdapter,
         ctx: &mut TxContext
