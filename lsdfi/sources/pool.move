@@ -2,7 +2,7 @@ module wisp_lsdfi::pool {
     use sui::coin::{Self, Coin, TreasuryCap};
     use sui::balance::{Self, Balance};
     use sui::event;
-    use sui::object::{Self, UID};
+    use sui::object::{Self, ID, UID};
     use sui::bag::{Self, Bag};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
@@ -28,6 +28,10 @@ module wisp_lsdfi::pool {
     friend wisp_lsdfi::lsdfi;
 
     struct AdminCap has key, store {
+        id: UID,
+    }
+
+    struct AdapterCap has key, store {
         id: UID,
     }
 
@@ -120,6 +124,10 @@ module wisp_lsdfi::pool {
         out_amounts: vector<u64>,
     }
 
+    struct AdapterCapCreated has copy, drop {
+        id: ID
+    }
+
     fun init (ctx: &mut TxContext){
         let sender = tx_context::sender(ctx);
 
@@ -173,6 +181,21 @@ module wisp_lsdfi::pool {
         event::emit (FeeToUpdated {
             fee_to: fee_to
         });
+    }
+
+    public fun create_adapter_cap(
+        _: &AdminCap,
+        ctx: &mut TxContext
+    ): AdapterCap {
+        let id = object::new(ctx);
+
+        event::emit(AdapterCapCreated {
+            id: object::uid_to_inner(&id)
+        });
+
+        AdapterCap {
+            id
+        }
     }
 
     public entry fun set_support_lst<T> (
@@ -363,6 +386,7 @@ module wisp_lsdfi::pool {
     }
 
     public fun take_out_SUI_deposit_SUI_receipt<T>(
+        _: &AdapterCap,
         receipt: &mut DepositSUIReceipt,
         ctx: &mut TxContext
     ): Coin<SUI> {
@@ -373,6 +397,7 @@ module wisp_lsdfi::pool {
     }
 
     public fun pay_back_deposit_SUI_receipt<T>(
+        _: &AdapterCap,
         registry: &mut LSDFIPoolRegistry,
         receipt: &mut DepositSUIReceipt,
         lst: Coin<T>,

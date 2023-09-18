@@ -172,22 +172,25 @@ module wisp_lsdfi::lsdfi_test {
             let wisp_registry = test::take_shared<PoolRegistry>(test);
             let aggregator = test::take_shared<Aggregator>(test);
             let clock = test::take_shared<Clock>(test);
+            let admin_cap = test::take_from_sender<AdminCap>(test);
+
+            let adapter_cap = pool::create_adapter_cap(&admin_cap, ctx(test));
 
             let sui = coin::mint_for_testing<SUI>(1_000_000_000_000_000_000, ctx(test));
 
             let deposit_receipt = lsdfi::deposit_SUI(&mut registry, &mut wisp_registry, &aggregator, sui, &clock, ctx(test));
             
-            let sui_lst_1 = pool::take_out_SUI_deposit_SUI_receipt<LST_1>(&mut deposit_receipt, ctx(test));
+            let sui_lst_1 = pool::take_out_SUI_deposit_SUI_receipt<LST_1>(&adapter_cap, &mut deposit_receipt, ctx(test));
             let sui_lst_1_amount = coin::burn_for_testing(sui_lst_1);
 
             let lst_1 = coin::mint_for_testing<LST_1>(sui_lst_1_amount, ctx(test));
-            pool::pay_back_deposit_SUI_receipt(&mut registry, &mut deposit_receipt, lst_1);
+            pool::pay_back_deposit_SUI_receipt(&adapter_cap, &mut registry, &mut deposit_receipt, lst_1);
 
-            let sui_lst_2 = pool::take_out_SUI_deposit_SUI_receipt<LST_2>(&mut deposit_receipt, ctx(test));
+            let sui_lst_2 = pool::take_out_SUI_deposit_SUI_receipt<LST_2>(&adapter_cap, &mut deposit_receipt, ctx(test));
             let sui_lst_2_amount = coin::burn_for_testing(sui_lst_2);
 
             let lst_2 = coin::mint_for_testing<LST_2>(sui_lst_2_amount, ctx(test));
-            pool::pay_back_deposit_SUI_receipt(&mut registry, &mut deposit_receipt, lst_2);
+            pool::pay_back_deposit_SUI_receipt(&adapter_cap, &mut registry, &mut deposit_receipt, lst_2);
 
             let wispSUI = lsdfi::drop_deposit_SUI_receipt_non_entry(&mut registry, deposit_receipt, ctx(test));
             coin::burn_for_testing(wispSUI);
