@@ -1,9 +1,10 @@
 module stsui_adapter::stsui_adapter {
     use sui::clock::Clock;
-    use sui::coin::{Self, Coin};
-    use sui::sui::SUI;
+    use sui::object::{Self, UID};
     use sui::tx_context::{TxContext};
     use sui::transfer;
+
+    use std::option::{Self, Option};
 
     use stsui::stsui::{STSUI};
     use stsui::stsui_protocol::{Self, StSUIProtocol};
@@ -11,7 +12,34 @@ module stsui_adapter::stsui_adapter {
     use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
     use wisp_lsdfi_aggregator::access_control::OperatorCap;
 
-    use wisp_lsdfi::pool::{Self, LSDFIPoolRegistry, DepositSUIReceipt};
+    use wisp_lsdfi::pool::{Self, AdminCap, AdapterCap, LSDFIPoolRegistry, DepositSUIReceipt};
+
+    const EInitialized: u64 = 0;
+    const ENotInitialized: u64 = 1;
+
+    struct StSuiAdapter has key {
+        id: UID,
+        adapter_cap: Option<AdapterCap>
+    }
+
+    fun init (ctx: &mut TxContext) {
+        let adapter = StSuiAdapter {
+            id: object::new(ctx),
+            adapter_cap: option::none()
+        };
+        
+        transfer::share_object(adapter)
+    }
+
+    fun initialize(
+        admin_cap: &AdminCap,
+        adapter: &mut StSuiAdapter,
+        ctx: &mut TxContext
+    ) {
+        assert!(option::is_some(&adapter.adapter_cap), EInitialized);
+        let adapter_cap = pool::create_adapter_cap(admin_cap, ctx);
+        option::fill(&mut adapter.adapter_cap, adapter_cap);
+    }
 
     public entry fun set_stsui_result(
         operator_cap: &OperatorCap,
@@ -24,15 +52,16 @@ module stsui_adapter::stsui_adapter {
     }
 
     public fun stake(
+        adapter: &StSuiAdapter,
         registry: &mut LSDFIPoolRegistry,
         protocol: &mut StSUIProtocol,
         receipt: &mut DepositSUIReceipt,
         ctx: &mut TxContext
     ) {
-        let sui = pool::take_out_SUI_deposit_SUI_receipt<STSUI>(receipt, ctx);
+        let sui = pool::take_out_SUI_deposit_SUI_receipt<STSUI>(option::borrow(&adapter.adapter_cap), receipt, ctx);
         let stsui = stsui_protocol::request_stake_non_entry(protocol, sui, ctx);
 
-        pool::pay_back_deposit_SUI_receipt<STSUI>(registry, receipt, stsui);
+        pool::pay_back_deposit_SUI_receipt<STSUI>(option::borrow(&adapter.adapter_cap), registry, receipt, stsui);
     }
 }
 

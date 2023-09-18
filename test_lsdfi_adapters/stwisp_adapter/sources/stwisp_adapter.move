@@ -1,9 +1,10 @@
 module stwisp_adapter::stwisp_adapter {
     use sui::clock::Clock;
-    use sui::coin::{Self, Coin};
-    use sui::sui::SUI;
+    use sui::object::{Self, UID};
     use sui::tx_context::{TxContext};
     use sui::transfer;
+
+    use std::option::{Self, Option};
 
     use stwisp::stwisp::{STWISP};
     use stwisp::stwisp_protocol::{Self, StWISPProtocol};
@@ -11,7 +12,34 @@ module stwisp_adapter::stwisp_adapter {
     use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
     use wisp_lsdfi_aggregator::access_control::OperatorCap;
 
-    use wisp_lsdfi::pool::{Self, LSDFIPoolRegistry, DepositSUIReceipt};
+    use wisp_lsdfi::pool::{Self, AdminCap, AdapterCap, LSDFIPoolRegistry, DepositSUIReceipt};
+
+    const EInitialized: u64 = 0;
+    const ENotInitialized: u64 = 1;
+
+    struct StWispAdapter has key {
+        id: UID,
+        adapter_cap: Option<AdapterCap>
+    }
+
+    fun init (ctx: &mut TxContext) {
+        let adapter = StWispAdapter {
+            id: object::new(ctx),
+            adapter_cap: option::none()
+        };
+        
+        transfer::share_object(adapter)
+    }
+
+    fun initialize(
+        admin_cap: &AdminCap,
+        adapter: &mut StWispAdapter,
+        ctx: &mut TxContext
+    ) {
+        assert!(option::is_some(&adapter.adapter_cap), EInitialized);
+        let adapter_cap = pool::create_adapter_cap(admin_cap, ctx);
+        option::fill(&mut adapter.adapter_cap, adapter_cap);
+    }
 
     public entry fun set_stwisp_result(
         operator_cap: &OperatorCap,
@@ -24,15 +52,16 @@ module stwisp_adapter::stwisp_adapter {
     }
 
     public fun stake(
+        adapter: &StWispAdapter,
         registry: &mut LSDFIPoolRegistry,
         protocol: &mut StWISPProtocol,
         receipt: &mut DepositSUIReceipt,
         ctx: &mut TxContext
     ) {
-        let sui = pool::take_out_SUI_deposit_SUI_receipt<STWISP>(receipt, ctx);
+        let sui = pool::take_out_SUI_deposit_SUI_receipt<STWISP>(option::borrow(&adapter.adapter_cap), receipt, ctx);
         let stwisp = stwisp_protocol::request_stake_non_entry(protocol, sui, ctx);
 
-        pool::pay_back_deposit_SUI_receipt<STWISP>(registry, receipt, stwisp);
+        pool::pay_back_deposit_SUI_receipt<STWISP>(option::borrow(&adapter.adapter_cap), registry, receipt, stwisp);
     }
 }
 
