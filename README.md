@@ -32,7 +32,11 @@ Wisp LSDFi Smart Contracts consists of 6 sub-modules
 -   `utils`: utility functions and consts
 -   `math`: functions for calculation
 
-## Objects
+## Objects/Structs
+
+### VEWISP
+
+Witness for VEWISP coin - WispLSDFi governance coin represents share in lst pool.
 
 ### AdminCap
 
