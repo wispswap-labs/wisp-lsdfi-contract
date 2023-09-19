@@ -1,0 +1,14 @@
+[package]
+name = "WispFarm"
+version = "0.0.1"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir="crates/sui-framework/packages/sui-framework/", rev = "testnet" }
+Wisp = { local = "../../wispswap-smart-contracts/wisp" }
+WispExchange = { local = "../../wispswap-smart-contracts/exchange" } 
+WispVault = { local = "../../wispswap-smart-contracts/vault" } 
+
+[addresses]
+wisp_farm =  "0x0"
+std = "0x1"
+sui =  "0x2"
