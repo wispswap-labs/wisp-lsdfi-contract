@@ -1,0 +1,14 @@
+[package]
+name = "aftermath"
+version = "0.0.1"
+published-at = "0xcda6851ea8630bea2d4eb91a3a40409429e52de4a10484f897895d778d9adafd"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
+SuiSystem = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-system", rev = "testnet" }
+
+[addresses]
+afsui_treasury = "0xcda6851ea8630bea2d4eb91a3a40409429e52de4a10484f897895d778d9adafd"
+sui = "0x2"
+sui_system = "0x3"
+
