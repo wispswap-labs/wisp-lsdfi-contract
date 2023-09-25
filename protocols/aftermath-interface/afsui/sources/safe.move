@@ -1,6 +1,7 @@
+#[allow(unused_field)]
 module afsui::safe{
     use sui::object::{UID, ID};
-    use std::option::{Option};
+    use std::option::Option;
     
     struct Safe<T> has key {
         id: UID,

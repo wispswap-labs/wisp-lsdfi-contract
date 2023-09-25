@@ -1,4 +1,5 @@
-module afsui_referral::treasury {
+#[allow(unused_field)]
+module afsui_referral::referral_vault {
     use sui::object::UID;
     use sui::bag::Bag;
     use sui::table::Table;
