@@ -1,7 +1,7 @@
 [package]
-name = "afsui"
+name = "referral_vault"
 version = "0.0.0"
-published-at = "5783fa2298e7301a1c7f99ce45d4a207478fbf3003eca9482ae823d6f6c7cd60"
+published-at = "df9176d6675d521b5570b6ee0aff555a1e56a7eb7824f894d73815b418ee6f30"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
@@ -11,4 +11,4 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 [addresses]
 
 sui = "0x2"
-afsui = "5783fa2298e7301a1c7f99ce45d4a207478fbf3003eca9482ae823d6f6c7cd60"
+referral_vault = "df9176d6675d521b5570b6ee0aff555a1e56a7eb7824f894d73815b418ee6f30"

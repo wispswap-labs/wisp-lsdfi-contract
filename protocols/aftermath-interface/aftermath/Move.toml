@@ -1,15 +1,22 @@
 [package]
 name = "aftermath"
-version = "0.0.1"
-published-at = "0x58e6bdd081ae6035141871a1c7cdf82895e944a8b7673f78d22e370a07cbf99b"
+version = "0.0.0"
+published-at = "58e6bdd081ae6035141871a1c7cdf82895e944a8b7673f78d22e370a07cbf99b"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
+
+SuiSystem = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-system", rev = "testnet" }
+linked_set = { local = "../linked_set" }
 afsui = { local = "../afsui" }
-afsui_referral = { local = "../afsui-referral" }
+utilities = { local = "../utilities" }
+treasury = { local = "../treasury" }
+sui_system_utils = { local = "../sui_system_utils" }
+referral_vault = { local = "../referral_vault" }
 
 
 [addresses]
-aftermath = "0x58e6bdd081ae6035141871a1c7cdf82895e944a8b7673f78d22e370a07cbf99b"
-sui = "0x2"
 
+sui = "0x2"
+sui_system = "0x3"
+aftermath = "58e6bdd081ae6035141871a1c7cdf82895e944a8b7673f78d22e370a07cbf99b"

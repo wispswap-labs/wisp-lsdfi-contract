@@ -9,7 +9,7 @@ WispLSDFi = { local = "../../lsdfi" }
 WispLSDFIAggregator = { local = "../../aggregator"}
 aftermath = { local = "../../protocols/aftermath-interface/aftermath" }
 afsui = { local = "../../protocols/aftermath-interface/afsui" }
-afsui_referral = { local = "../../protocols/aftermath-interface/afsui-referral" }
+referral_vault = { local = "../../protocols/aftermath-interface/referral_vault" }
 
 [addresses]
 aftermath_adapter =  "0x0"

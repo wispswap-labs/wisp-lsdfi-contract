@@ -1,14 +1,12 @@
 [package]
-name = "afsui"
+name = "linked_set"
 version = "0.0.0"
-published-at = "5783fa2298e7301a1c7f99ce45d4a207478fbf3003eca9482ae823d6f6c7cd60"
+published-at = "1c958cf99ae8f87cbcd64e461bf388201e3b2a9d256ee1ffb45dd1c49a2b7620"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
 
 
-
 [addresses]
-
 sui = "0x2"
-afsui = "5783fa2298e7301a1c7f99ce45d4a207478fbf3003eca9482ae823d6f6c7cd60"
+linked_set = "1c958cf99ae8f87cbcd64e461bf388201e3b2a9d256ee1ffb45dd1c49a2b7620"
