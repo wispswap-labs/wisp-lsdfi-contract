@@ -20,6 +20,9 @@
 | Liquidity Providing to wispSUI-SUI <br> pool when depositing SUI |       |             |  ✅  |
 | Yield claiming from LST protocols                                |       |     🚧      |      |
 | Unstake from LST protocols                                       |       |     🚧      |      |
+| Integration with Lending/Borrowing protocol |       |      🚧       |    |
+| On-chain Casino games |       |     🚧      |      |
+| On-chain Crash game                                       |       |     🚧      |      |
 
 ### LST protocols integration
 
