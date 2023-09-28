@@ -1,14 +1,14 @@
 [package]
-name = "afsui_treasury"
-version = "0.0.1"
-published-at = "0xcda6851ea8630bea2d4eb91a3a40409429e52de4a10484f897895d778d9adafd"
+name = "sui_system_utils"
+version = "0.0.0"
+published-at = "dd8066621ab66c912e601435fc1600891fc2472bce5bbfbed9f9dfe6e456f6c4"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
 SuiSystem = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-system", rev = "testnet" }
 
 [addresses]
-afsui_treasury = "0xcda6851ea8630bea2d4eb91a3a40409429e52de4a10484f897895d778d9adafd"
+
 sui = "0x2"
 sui_system = "0x3"
-
+sui_system_utils = "dd8066621ab66c912e601435fc1600891fc2472bce5bbfbed9f9dfe6e456f6c4"

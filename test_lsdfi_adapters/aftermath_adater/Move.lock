@@ -2,8 +2,7 @@
 
 [move]
 version = 0
-manifest_digest = "0267BB606142CD8CCD26F78160977EF1233F710B9A8FFF8938BA91E369809B07"
-deps_digest = "7BD95B1BCA160EE53F64FD1D34A8E405B47C23B3A2D1346EA27B8637418FD23B"
+manifest_digest = "353391A478B8336886481D3E546900B593C97A0FF79EF68B0A80697733E8E1C3"
 
 dependencies = [
   { name = "Sui" },
@@ -11,8 +10,8 @@ dependencies = [
   { name = "WispLSDFIAggregator" },
   { name = "WispLSDFi" },
   { name = "afsui" },
-  { name = "afsui_referral" },
   { name = "aftermath" },
+  { name = "referral_vault" },
 ]
 
 [[move.package]]
@@ -71,8 +70,39 @@ dependencies = [
 ]
 
 [[move.package]]
-name = "afsui_referral"
-source = { local = "../../protocols/aftermath-interface/afsui-referral" }
+name = "aftermath"
+source = { local = "../../protocols/aftermath-interface/aftermath" }
+
+dependencies = [
+  { name = "Sui" },
+  { name = "SuiSystem" },
+  { name = "afsui" },
+  { name = "linked_set" },
+  { name = "referral_vault" },
+  { name = "sui_system_utils" },
+  { name = "treasury" },
+  { name = "utilities" },
+]
+
+[[move.package]]
+name = "linked_set"
+source = { local = "../../protocols/aftermath-interface/linked_set" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
+name = "referral_vault"
+source = { local = "../../protocols/aftermath-interface/referral_vault" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
+name = "sui_system_utils"
+source = { local = "../../protocols/aftermath-interface/sui_system_utils" }
 
 dependencies = [
   { name = "Sui" },
@@ -80,11 +110,17 @@ dependencies = [
 ]
 
 [[move.package]]
-name = "aftermath"
-source = { local = "../../protocols/aftermath-interface/aftermath" }
+name = "treasury"
+source = { local = "../../protocols/aftermath-interface/treasury" }
 
 dependencies = [
   { name = "Sui" },
-  { name = "afsui" },
-  { name = "afsui_referral" },
+]
+
+[[move.package]]
+name = "utilities"
+source = { local = "../../protocols/aftermath-interface/utilities" }
+
+dependencies = [
+  { name = "Sui" },
 ]

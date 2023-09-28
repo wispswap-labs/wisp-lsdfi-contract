@@ -1,7 +1,7 @@
 [package]
-name = "afsui"
+name = "utilities"
 version = "0.0.0"
-published-at = "5783fa2298e7301a1c7f99ce45d4a207478fbf3003eca9482ae823d6f6c7cd60"
+published-at = "7a93373a5ddba640a1119933ef04dd5246cea91ceb787677585bb0410fe319cf"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
@@ -11,4 +11,4 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 [addresses]
 
 sui = "0x2"
-afsui = "5783fa2298e7301a1c7f99ce45d4a207478fbf3003eca9482ae823d6f6c7cd60"
+utilities = "7a93373a5ddba640a1119933ef04dd5246cea91ceb787677585bb0410fe319cf"

@@ -9,7 +9,7 @@ module aftermath_adapter::aftermath_adapter {
     
     use afsui::afsui::AFSUI;
     use afsui::safe::Safe;
-    use afsui_referral::referral_vault::ReferralVault;
+    use referral_vault::referral_vault::ReferralVault;
     use aftermath::staked_sui_vault::{Self, StakedSuiVault};
 
     use wisp_lsdfi_aggregator::aggregator::{Self, Aggregator};
