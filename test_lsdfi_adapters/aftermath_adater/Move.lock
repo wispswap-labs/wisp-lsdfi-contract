@@ -3,7 +3,7 @@
 [move]
 version = 0
 manifest_digest = "0267BB606142CD8CCD26F78160977EF1233F710B9A8FFF8938BA91E369809B07"
-deps_digest = "7BD95B1BCA160EE53F64FD1D34A8E405B47C23B3A2D1346EA27B8637418FD23B"
+deps_digest = "E1D7E043028E491423D24CFE32EDBF08D2B9BE2D88583F8EF0EB42E83F381881"
 
 dependencies = [
   { name = "Sui" },
@@ -13,6 +13,14 @@ dependencies = [
   { name = "afsui" },
   { name = "afsui_referral" },
   { name = "aftermath" },
+]
+
+[[move.package]]
+name = "LinkedSet"
+source = { local = "../../protocols/aftermath-interface/linked_set" }
+
+dependencies = [
+  { name = "Sui" },
 ]
 
 [[move.package]]
@@ -33,6 +41,14 @@ source = { git = "https://github.com/MystenLabs/sui.git", rev = "testnet", subdi
 
 dependencies = [
   { name = "MoveStdlib" },
+  { name = "Sui" },
+]
+
+[[move.package]]
+name = "SuiSystemUtils"
+source = { local = "../../protocols/aftermath-interface/sui_system_utils" }
+
+dependencies = [
   { name = "Sui" },
 ]
 
@@ -80,11 +96,32 @@ dependencies = [
 ]
 
 [[move.package]]
+name = "afsui_treasury"
+source = { local = "../../protocols/aftermath-interface/afsui-treasury" }
+
+dependencies = [
+  { name = "Sui" },
+  { name = "SuiSystem" },
+]
+
+[[move.package]]
 name = "aftermath"
 source = { local = "../../protocols/aftermath-interface/aftermath" }
 
 dependencies = [
+  { name = "LinkedSet" },
   { name = "Sui" },
+  { name = "SuiSystemUtils" },
   { name = "afsui" },
   { name = "afsui_referral" },
+  { name = "afsui_treasury" },
+  { name = "utilities" },
+]
+
+[[move.package]]
+name = "utilities"
+source = { local = "../../protocols/aftermath-interface/utilities" }
+
+dependencies = [
+  { name = "Sui" },
 ]

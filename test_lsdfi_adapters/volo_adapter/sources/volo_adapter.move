@@ -36,7 +36,7 @@ module volo_adapter::volo_adapter {
         adapter: &mut VoloAdapter,
         ctx: &mut TxContext
     ) {
-        assert!(option::is_some(&adapter.adapter_cap), EInitialized);
+        assert!(option::is_none(&adapter.adapter_cap), EInitialized);
         let adapter_cap = pool::create_adapter_cap(admin_cap, ctx);
         option::fill(&mut adapter.adapter_cap, adapter_cap);
     }
@@ -58,7 +58,6 @@ module volo_adapter::volo_adapter {
         registry: &mut LSDFIPoolRegistry,
         volo_native_pool: &mut NativePool,
         volo_metadata: &mut Metadata<CERT>,
-        validator: address,
         receipt: &mut DepositSUIReceipt,
         ctx: &mut TxContext
     ) {

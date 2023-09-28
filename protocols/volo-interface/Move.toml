@@ -1,13 +1,14 @@
 [package]
 name = "volo"
 version = "0.0.1"
+published-at = "0x0dc9aa0448b0feeddb052023b1bf0771de6e1b1a357b02912062b53996335b62"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
 SuiSystem = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-system", rev = "testnet" }
 
 [addresses]
-volo = "0x0"
+volo = "0x0dc9aa0448b0feeddb052023b1bf0771de6e1b1a357b02912062b53996335b62"
 sui = "0x2"
 sui_system = "0x3"
 

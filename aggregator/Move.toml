@@ -1,11 +1,11 @@
 [package]
 name = "WispLSDFIAggregator"
 version = "1.0.0"
-published-at = "0x6abd0c0bd440be225f413bfdb17a65631f71b455345e3c023882e21ccd6f5714"
+published-at = "0x7acce221f903b5498e4a82ef5c974058a2998e5939a55265302f4729aea2d6bf"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir="crates/sui-framework/packages/sui-framework/", rev = "testnet" }
 
 [addresses]
-wisp_lsdfi_aggregator = "0x6abd0c0bd440be225f413bfdb17a65631f71b455345e3c023882e21ccd6f5714"
+wisp_lsdfi_aggregator = "0x7acce221f903b5498e4a82ef5c974058a2998e5939a55265302f4729aea2d6bf"
 sui = "0x2"

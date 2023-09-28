@@ -36,7 +36,7 @@ module haedal_adapter::haedal_adapter {
         adapter: &mut HeadalAdapter,
         ctx: &mut TxContext
     ) {
-        assert!(option::is_some(&adapter.adapter_cap), EInitialized);
+        assert!(option::is_none(&adapter.adapter_cap), EInitialized);
         let adapter_cap = pool::create_adapter_cap(admin_cap, ctx);
         option::fill(&mut adapter.adapter_cap, adapter_cap);
     }
