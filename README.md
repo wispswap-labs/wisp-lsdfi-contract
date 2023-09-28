@@ -1,49 +1,52 @@
 # WispLSDFI
 
 ## Development progress
-### vdAMM
-| vdAMM features                                | To Do | In Progress | Done |
-| -------------------------------------- | :----: | :----: | :----: |
-| Multi-asset token pools              |       |             |    ✅  |
-| Swap between LSTs                    |       |             |    ✅  |
-| Swap between SUI and LST             |  📝   |             |      |
-| Swap between wispSUI and LST         |       |          🚧    |      |
-| Mint wispSUI from SUI                |       |             |   ✅   |
-| Mint wispSUI from LST                |       |             |   ✅   |
-| Basket Withdrawal                    |       |             |    ✅  |
-| Basket target weight calculation     |       |             |   ✅   |
-| Max cap set for LSTs                |       |             |    ✅  |
-| Dynamic Fee Implementation           |       |             |    ✅  |
-| Fee distribution implementation      |       |       🚧       |      |
-| Liquidity Providing to wispSUI-SUI <br> pool when depositing SUI |       |             |   ✅   |
-| Yield claiming from LST protocols   |       |        🚧      |      |
-| Unstake from LST protocols           |       |        🚧      |      |
-### LST protocols integration
-| LST protocols integration  | To Do | In Progress | Done |
-| ----------------------- | :----: | :----: | :----: |
-| [Haedel (haSUI)][haedal]                |       |             |   ✅   |
-| [Volo (voloSUI)][volo]               |       |      🚧        |      |
-| [Aftermath (afSUI)][aftermath]            |       |      🚧        |      |
-| [DegenHive (deSUI)][degenhive]           |    📝   |              |      |
 
+### vdAMM
+
+| vdAMM features                                                   | To Do | In Progress | Done |
+| ---------------------------------------------------------------- | :---: | :---------: | :--: |
+| Multi-asset token pools                                          |       |             |  ✅  |
+| Swap between LSTs                                                |       |             |  ✅  |
+| Swap between SUI and LST                                         |  📝   |             |      |
+| Swap between wispSUI and LST                                     |       |     🚧      |      |
+| Mint wispSUI from SUI                                            |       |             |  ✅  |
+| Mint wispSUI from LST                                            |       |             |  ✅  |
+| Basket Withdrawal                                                |       |             |  ✅  |
+| Basket target weight calculation                                 |       |             |  ✅  |
+| Max cap set for LSTs                                             |       |             |  ✅  |
+| Dynamic Fee Implementation                                       |       |             |  ✅  |
+| Fee distribution implementation                                  |       |     🚧      |      |
+| Liquidity Providing to wispSUI-SUI <br> pool when depositing SUI |       |             |  ✅  |
+| Yield claiming from LST protocols                                |       |     🚧      |      |
+| Unstake from LST protocols                                       |       |     🚧      |      |
+
+### LST protocols integration
+
+| LST protocols integration      | To Do | In Progress | Done |
+| ------------------------------ | :---: | :---------: | :--: |
+| [Haedel (haSUI)][haedal]       |       |             |  ✅  |
+| [Volo (voloSUI)][volo]         |       |             |  ✅  |
+| [Aftermath (afSUI)][aftermath] |       |             |  ✅  |
+| [DegenHive (deSUI)][degenhive] |  📝   |             |      |
 
 ### veWISP governance token
-| veWISP governance token features           | To Do | In Progress | Done |
-| ---------------------------------- | :----: | :----: | :----: |
-|  DAO voting for LSTs basket composition <br> (Risk Coefficients and Fee curve paramenters) |       |        🚧      |      |
-|  Stake veWISP to earn protocol's earnings |    📝    |             |      |
+
+| veWISP governance token features                                                          | To Do | In Progress | Done |
+| ----------------------------------------------------------------------------------------- | :---: | :---------: | :--: |
+| DAO voting for LSTs basket composition <br> (Risk Coefficients and Fee curve paramenters) |       |     🚧      |      |
+| Stake veWISP to earn protocol's earnings                                                  |  📝   |             |      |
 
 ### wispSUI utilities
 
-| wispSUI utilities      | To Do | In Progress | Done |
-| ----------------------- | :----: | :----: | :----: |
-|  Stake wispSUI to earn WISP |       |             |   ✅   |
-|  Yield Boosting using veWisp |       |             |    ✅  |
-|  Lock mechanism        |       |             |   ✅   |
-|  Block-by-block yield emissions |       |             |   ✅   |
-|  Using wispSUI on Wisp-prediction |       |      🚧        |      |
-|  wispSUI, SUI prediction aggregator |     📝   |             |      |
-
+| wispSUI utilities                  | To Do | In Progress | Done |
+| ---------------------------------- | :---: | :---------: | :--: |
+| Stake wispSUI to earn WISP         |       |             |  ✅  |
+| Yield Boosting using veWisp        |       |             |  ✅  |
+| Lock mechanism                     |       |             |  ✅  |
+| Block-by-block yield emissions     |       |             |  ✅  |
+| Using wispSUI on Wisp-prediction   |       |             |  ✅  |
+| wispSUI, SUI prediction aggregator |  📝   |             |      |
 
 ## Contract
 
@@ -57,14 +60,31 @@ Current deployed packages/objects:
 
 #### LSDFi
 
--   Package address: 0x3c57f671f3d4cbdae9ca433636a6b24628469322b931f7c89fc03c1f4984e64b
--   AdminCap object: 0x3000f0b0d393825e2398ca9208e3988ce764c5a0082d51047ce4eecdcf376ad0
--   LSDFiPoolRegistry object: 0x8b0ebf9e5fab704e5829cb83dfa584542135d98f920560d4a0d7ad30d2f5ed4a
+-   Package address: 0x92cfde55a8021634e8377b07831d18b624f819f6a88d26dbe16a4a0979aaa1a7
+-   AdminCap object: 0xbed7d5435e15fd48be835c00b0dc4eb559fb2284502454c2f3a82f7f890af9f0
+-   LSDFiPoolRegistry object: 0x6c56f66099b83416ac77e0f79f9cb66e5c1bb9a9be8a239cdd8786eefd67d8eb
 
 #### Aggregator
 
--   Package address: 0xcbb27865df487acdffb16f770409aa83d97e8189f5855e29247cc4d574a201e6
--   Aggregator: 0x38367d79002f528fea9d79e5978621328bd7b04df2c2a9f86a2b9d15495ccc8b
+-   Package address: 0x7acce221f903b5498e4a82ef5c974058a2998e5939a55265302f4729aea2d6bf
+-   Aggregator: 0xb1ab5d3bf2a5152fdee275fd6ac4d8734ba06b1301d7075f0ab542c1b6a96b89
+
+#### Adapters
+
+Aftermath:
+
+-   Package address: 0x4aeb6357f338dbc4da1bc34ac06c5b09438fbe9d11e8f0666f0bd983e5c0bab8
+-   Adapter: 0x2ba221c741f952572537137ab850f5f40f95ab88a7f5c78bef9d6a648ac89483
+
+Haedal:
+
+-   Package address: 0x80d5fd2f567fdc45f88139f11563aea980486466ec33c5719a70ce27435710ab
+-   Adapter: 0x566c0784096fc0698babe787b261d594dde9e4da02de539fb4be2739e334488b
+
+Volo:
+
+-   Package address: 0xf449105218d90e68ca5cd530a375e40f392b249facc3374c85678afc18b3adf6
+-   Adapter: 0x53ce50cf2f80e9891d3a8a06c2c953722b48d347bc26cebe1b30f28432b88eb5
 
 ## Structure
 
