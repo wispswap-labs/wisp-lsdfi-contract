@@ -1,0 +1,33 @@
+---
+compiled_package_info:
+  package_name: utils
+  address_alias_instantiation:
+    std: "0000000000000000000000000000000000000000000000000000000000000001"
+    sui: "0000000000000000000000000000000000000000000000000000000000000002"
+    sui_system: "0000000000000000000000000000000000000000000000000000000000000003"
+    utils: "0000000000000000000000000000000000000000000000000000000000000000"
+    wisp: 6c4a21e3e7e6b6d51c4604021633e1d97e24e37a696f8c082cd48f37503e602a
+    wisp_lsdfi: 92cfde55a8021634e8377b07831d18b624f819f6a88d26dbe16a4a0979aaa1a7
+    wisp_lsdfi_aggregator: 7acce221f903b5498e4a82ef5c974058a2998e5939a55265302f4729aea2d6bf
+  source_digest: F5DC1482C4E59899A161D9B5BA2F759FF0475366D1EF5AAE5FDC7F59BF76855B
+  build_flags:
+    dev_mode: false
+    test_mode: false
+    generate_docs: false
+    generate_abis: false
+    install_dir: ~
+    force_recompilation: false
+    lock_file: "./Move.lock"
+    additional_named_addresses: {}
+    fetch_deps_only: false
+    skip_fetch_latest_git_deps: false
+    default_flavor: sui
+    default_edition: ~
+    deps_as_root: false
+dependencies:
+  - MoveStdlib
+  - Sui
+  - SuiSystem
+  - WispExchange
+  - WispLSDFIAggregator
+  - WispLSDFi
