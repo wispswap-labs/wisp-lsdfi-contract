@@ -50,6 +50,7 @@ module wisp_lsdfi::pool {
         sui_split_bps: u64, // times basis points
         fee_to: address,
         is_sui_smaller_than_wispSUI: bool,
+        version: u64
     }
 
     // "Hot potato" object
@@ -156,7 +157,8 @@ module wisp_lsdfi::pool {
             redemption_fee: 25, // 0.25%
             sui_split_bps: 500, // 5%
             fee_to: sender,
-            is_sui_smaller_than_wispSUI
+            is_sui_smaller_than_wispSUI,
+            version: 1
         };
 
         transfer::transfer(admin_cap, sender);
