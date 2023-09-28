@@ -18,6 +18,7 @@ module wisp_lsdfi_aggregator::aggregator {
         id: UID,
         lst_names: VecSet<TypeName>,
         total_staked_sui: Table<TypeName, Option<Result>>,
+        version: u64
     }
 
     struct Result has copy, store, drop {
@@ -53,6 +54,7 @@ module wisp_lsdfi_aggregator::aggregator {
             id: object::new(ctx),
             lst_names: vec_set::empty(),
             total_staked_sui: table::new(ctx),
+            version: 1
         };
 
         let admin_cap = access_control::create_admin_cap(ctx);
