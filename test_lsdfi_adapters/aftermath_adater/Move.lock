@@ -15,14 +15,6 @@ dependencies = [
 ]
 
 [[move.package]]
-name = "LinkedSet"
-source = { local = "../../protocols/aftermath-interface/linked_set" }
-
-dependencies = [
-  { name = "Sui" },
-]
-
-[[move.package]]
 name = "MoveStdlib"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "testnet", subdir = "crates/sui-framework/packages/move-stdlib" }
 
@@ -40,14 +32,6 @@ source = { git = "https://github.com/MystenLabs/sui.git", rev = "testnet", subdi
 
 dependencies = [
   { name = "MoveStdlib" },
-  { name = "Sui" },
-]
-
-[[move.package]]
-name = "SuiSystemUtils"
-source = { local = "../../protocols/aftermath-interface/sui_system_utils" }
-
-dependencies = [
   { name = "Sui" },
 ]
 
@@ -138,6 +122,5 @@ name = "utilities"
 source = { local = "../../protocols/aftermath-interface/utilities" }
 
 dependencies = [
-  { name = "LinkedSet" },
   { name = "Sui" },
 ]

@@ -7,6 +7,7 @@ set temp acceptable time
 setsupport lsts
 
 deploy adapter
+initialize
 set result adapter
 
 deposit on lsdfi
