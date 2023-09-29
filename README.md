@@ -4,25 +4,25 @@
 
 ### vdAMM
 
-| vdAMM features                                                   | To Do | In Progress | Done |
-| ---------------------------------------------------------------- | :---: | :---------: | :--: |
-| Multi-asset token pools                                          |       |             |  ✅  |
-| Swap between LSTs                                                |       |             |  ✅  |
-| Swap between SUI and LST                                         |  📝   |             |      |
-| Swap between wispSUI and LST                                     |       |     🚧      |      |
-| Mint wispSUI from SUI                                            |       |             |  ✅  |
-| Mint wispSUI from LST                                            |       |             |  ✅  |
-| Basket Withdrawal                                                |       |             |  ✅  |
-| Basket target weight calculation                                 |       |             |  ✅  |
-| Max cap set for LSTs                                             |       |             |  ✅  |
-| Dynamic Fee Implementation                                       |       |             |  ✅  |
-| Fee distribution implementation                                  |       |     🚧      |      |
-| Liquidity Providing to wispSUI-SUI <br> pool when depositing SUI |       |             |  ✅  |
-| Yield claiming from LST protocols                                |       |     🚧      |      |
-| Unstake from LST protocols                                       |       |     🚧      |      |
-| Integration with Lending/Borrowing protocol |       |      🚧       |    |
-| On-chain Casino games |       |     🚧      |      |
-| On-chain Crash game                                       |       |     🚧      |      |
+| vdAMM features                                                   | To Do | In Progress | PoC  | Refined  | Audited  |
+| ---------------------------------------------------------------- | :---: | :---------: | :--: | :--: | :--: |
+| Multi-asset token pools                                          |       |             |  ✅  |      |      |
+| Swap between LSTs                                                |       |             |  ✅  |      |      |
+| Swap between SUI and LST                                         |  📝   |             |      |      |      |
+| Swap between wispSUI and LST                                     |       |     🚧      |      |      |      |
+| Mint wispSUI from SUI                                            |       |             |  ✅  |      |      |
+| Mint wispSUI from LST                                            |       |             |  ✅  |      |      |
+| Basket Withdrawal                                                |       |             |  ✅  |      |      |
+| Basket target weight calculation                                 |       |             |  ✅  |      |      |
+| Max cap set for LSTs                                             |       |             |  ✅  |      |      |
+| Dynamic Fee Implementation                                       |       |             |  ✅  |      |      |
+| Fee distribution implementation                                  |       |     🚧      |      |      |      |
+| Liquidity Providing to wispSUI-SUI <br> pool when depositing SUI |       |             |  ✅  |      |      |
+| Yield claiming from LST protocols                                |       |     🚧      |      |      |      |
+| Unstake from LST protocols                                       |       |     🚧      |      |      |      |
+| Integration with Lending/Borrowing protocol                      |       |      🚧     |      |      |      |
+| On-chain Casino games                                            |       |     🚧      |      |      |      |
+| On-chain Crash game                                              |       |     🚧      |      |      |      |
 
 ### LST protocols integration
 
@@ -31,11 +31,13 @@
 | [Haedel (haSUI)][haedal]       |       |             |  ✅  |
 | [Volo (voloSUI)][volo]         |       |             |  ✅  |
 | [Aftermath (afSUI)][aftermath] |       |             |  ✅  |
-| [DegenHive (deSUI)][degenhive] |  📝   |             |      |
+| [DegenHive (deSUI)][degenhive] |     |       🚧      |      |
+| [Interest Protocol (iSUI)][interestprotocol] |     |      🚧       |      |
+
 
 ### veWISP governance token
 
-| veWISP governance token features                                                          | To Do | In Progress | Done |
+| veWISP governance token features                                                          | To Do | In Progress | Done | 
 | ----------------------------------------------------------------------------------------- | :---: | :---------: | :--: |
 | DAO voting for LSTs basket composition <br> (Risk Coefficients and Fee curve paramenters) |       |     🚧      |      |
 | Stake veWISP to earn protocol's earnings                                                  |  📝   |             |      |
@@ -418,3 +420,4 @@ public fun sui_split_bps(registry: &LSDFIPoolRegistry): u64
 [volo]: https://www.volo.fi/
 [aftermath]: https://aftermath.finance/
 [degenhive]: https://www.degenhive.ai/
+[interestprotocol]: https://www.interestprotocol.com/
